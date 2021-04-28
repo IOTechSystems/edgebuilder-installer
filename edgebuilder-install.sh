@@ -158,6 +158,37 @@ install_node()
   echo "INFO: Validation succeeded"
 }
 
+install_cli_deb()
+{
+  echo "INFO: Starting CLI install on $DIST - $ARCH"
+  if dpkg -l | grep -qw edgebuilder-cli ;then
+    echo "INFO: CLI already installed, exiting"
+    exit 0
+  fi
+
+  echo "INFO: Setting up apt"
+  wget -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
+  if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/iotech.list ;then
+    echo "INFO: IoTech repo already added"
+  else
+    echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+  fi
+
+  echo "INFO: Installing"
+  sudo apt update -qq
+  sudo apt install -y -qq edgebuilder-cli
+}
+
+install_cli_rpm()
+{
+  echo "INFO: Starting CLI install on $DIST - $ARCH"
+  if rpm -qa | grep -qw edgebuilder-cli ;then
+    echo "INFO: CLI already installed, exiting"
+    exit 0
+  fi
+
+}
+
 
 # If no options are specified
 if [ -z $1 ];then
@@ -231,9 +262,9 @@ elif [ "$COMPONENT" = "cli" ]; then
 
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
     if [ -x "$(command -v apt-get)" ]; then
-      echo "do install"
+      install_cli_deb
     elif [ -x "$(command -v dnf)" ]; then
-      echo "do install"
+      install_cli_rpm
     else
       echo "ERROR: The Edge Builder CLI cannot be installed as no suitable package manager has been found (apt or dnf)"
       exit 1
@@ -242,5 +273,4 @@ elif [ "$COMPONENT" = "cli" ]; then
     echo "ERROR: The Edge Builder CLI is not supported on $ARCH"
     exit 1
   fi
-
 fi
