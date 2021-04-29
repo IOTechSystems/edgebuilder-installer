@@ -1,16 +1,26 @@
 #!/bin/sh
 COMPONENT=$1
+VER="0.9.0"
+
 UBUNTU2004="Ubuntu 20.04"
 UBUNTU1804="Ubuntu 18.04"
 DEBIAN10="Debian GNU/Linux 10"
 RASPBIAN10="Raspbian GNU/Linux 10"
 
+RPM_REPO_DATA='[IoTech]
+name=IoTech
+baseurl=https://iotech.jfrog.io/artifactory/rpm-release
+enabled=1
+gpgcheck=0'
+
+# Displays simple usage prompt
 display_usage()
 {
-    echo "Usage: edgebuilder-install.sh [param]"
-    echo "params: server, node, cli"
+  echo "Usage: edgebuilder-install.sh [param]"
+  echo "params: server, node, cli"
 }
 
+# Gets the distribution 'name' bionic, focal etc
 get_dist_name()
 {
   if [ "$1" = "$UBUNTU2004" ]; then
@@ -22,6 +32,7 @@ get_dist_name()
   fi
 }
 
+# Gets the distribution number 20.04, 18.04 etc
 get_dist_num()
 {
   if [ "$1" = "$UBUNTU2004" ]; then
@@ -33,6 +44,7 @@ get_dist_num()
   fi
 }
 
+# Gets the basic distrubtion type ubuntu, debian etc
 get_dist_type()
 {
   if [ "$1" = "$UBUNTU2004" ]||[ "$1" = "$UBUNTU1804" ]; then
@@ -43,6 +55,8 @@ get_dist_type()
 
 }
 
+# Installs the server components
+# Args: Distributon
 install_server()
 {
   DIST=$1
@@ -66,7 +80,7 @@ install_server()
 
   echo "INFO: Installing"
   apt-get update -qq
-  apt-get install -qq -y edgebuilder-server
+  apt-get install -qq -y edgebuilder-server="$VER"
 
   echo "INFO: Configuring user"
   USER=$(logname)
@@ -81,8 +95,17 @@ install_server()
   systemctl enable docker.service
 
   echo "INFO: Server installation complete"
+
+  echo "INFO: Validating installation"
+  OUTPUT=$(edgebuilder-server)
+  if [ "$OUTPUT" = "" ]; then
+    echo "ERROR: Node installation could not be validated"
+  fi
+  echo "INFO: Validation succeeded"
 }
 
+# Installs the node components
+# Args: Distribution, Architecture
 install_node()
 {
   DIST=$1
@@ -133,7 +156,7 @@ install_node()
   apt-get update -qq
 
   echo "INFO: Installing"
-  apt-get install -y -qq edgebuilder-node
+  apt-get install -y -qq edgebuilder-node="$VER"
 
   echo "INFO: Configuring user"
   USER=$(logname)
@@ -154,12 +177,15 @@ install_node()
   if [ "$OUTPUT" = "" ]; then
     echo "ERROR: Node installation could not be validated"
   fi
-  echo $OUTPUT
   echo "INFO: Validation succeeded"
 }
 
+# Installs the CLI using apt
+# Args: Distribution, Architecture
 install_cli_deb()
 {
+  DIST=$1
+  ARCH=$2
   echo "INFO: Starting CLI install on $DIST - $ARCH"
   if dpkg -l | grep -qw edgebuilder-cli ;then
     echo "INFO: CLI already installed, exiting"
@@ -176,19 +202,47 @@ install_cli_deb()
 
   echo "INFO: Installing"
   sudo apt update -qq
-  sudo apt install -y -qq edgebuilder-cli
+  sudo apt install -y -qq edgebuilder-cli="$VER"
+
+  echo "INFO: Validating installation"
+  OUTPUT=$(edgebuilder-cli -v)
+  if [ "$OUTPUT" = "" ]; then
+    echo "ERROR: CLI installation could not be validated"
+  fi
+  echo "INFO: Validation succeeded"
 }
 
+# Installs the CLI using dnf
+# Args: Distribution, Architecture
 install_cli_rpm()
 {
+  DIST=$1
+  ARCH=$2
   echo "INFO: Starting CLI install on $DIST - $ARCH"
   if rpm -qa | grep -qw edgebuilder-cli ;then
     echo "INFO: CLI already installed, exiting"
     exit 0
   fi
 
+  echo "INFO: Setting up yum/dnf"
+  if grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/iotech.repo ;then
+    echo "INFO: IoTech repo already added"
+  else
+    echo "$RPM_REPO_DATA" | sudo tee -a /etc/yum.repos.d/iotech.repo
+  fi
+
+  echo "INFO: Installing"
+  dnf install -y edgebuilder-cli-"$VER"*
+
+  echo "INFO: Validating installation"
+  OUTPUT=$(edgebuilder-cli -v)
+  if [ "$OUTPUT" = "" ]; then
+    echo "ERROR: CLI installation could not be validated"
+  fi
+  echo "INFO: Validation succeeded"
 }
 
+# Main starts here:
 
 # If no options are specified
 if [ -z $1 ];then
@@ -225,7 +279,6 @@ ARCH="$(uname -m)"
 # Check compatibility
 echo "INFO: Checking compatibility"
 if [ "$COMPONENT" = "server" ];then
-
   if [ "$ARCH" = "x86_64" ];then
     if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN10" ];then
       install_server "$OS"
@@ -236,7 +289,6 @@ if [ "$COMPONENT" = "server" ];then
     echo "ERROR: The Edge Builder server components are not supported on $ARCH"
     exit 1
   fi
-
 elif [ "$COMPONENT" = "node" ]; then
 
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ];then
@@ -257,14 +309,13 @@ elif [ "$COMPONENT" = "node" ]; then
     echo "ERROR: The Edge Builder node components are not supported on $ARCH"
     exit 1
   fi
-
 elif [ "$COMPONENT" = "cli" ]; then
-
+  
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
     if [ -x "$(command -v apt-get)" ]; then
-      install_cli_deb
+      install_cli_deb "$OS" "$ARCH"
     elif [ -x "$(command -v dnf)" ]; then
-      install_cli_rpm
+      install_cli_rpm "$OS" "$ARCH"
     else
       echo "ERROR: The Edge Builder CLI cannot be installed as no suitable package manager has been found (apt or dnf)"
       exit 1
