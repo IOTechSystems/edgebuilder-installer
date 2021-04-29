@@ -10,5 +10,6 @@ This installer is designed to make it easy to install any of the following Edge 
 
 ## Usage:
 
-Usage: edgebuilder-install.sh [param]
+Usage: sudo ./edgebuilder-install.sh [param]
+
 params: server, node, cli
