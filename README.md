@@ -8,6 +8,8 @@ This installer is designed to make it easy to install any of the following Edge 
 2. Node Components
 3. CLI
 
+The installer assumes that the current user would be used if adding a node by ssh
+
 ## Usage:
 
 Usage: sudo ./edgebuilder-install.sh [param]

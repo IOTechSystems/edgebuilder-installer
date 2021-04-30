@@ -60,9 +60,10 @@ get_dist_type()
 install_server()
 {
   DIST=$1
-  echo "INFO: Starting server install on $DIST"
+  echo "INFO: Starting server ($VER) install on $DIST"
   if dpkg -l | grep -qw edgebuilder-server ;then
-    echo "INFO: Server already installed, exiting"
+    PKG_VER=$(dpkg -s edgebuilder-server | grep -i version)
+    echo "INFO: Server $PKG_VER already installed, exiting"
     exit 0
   fi
 
@@ -110,9 +111,10 @@ install_node()
 {
   DIST=$1
   ARCH=$2
-  echo "INFO: Starting node install on $DIST - $ARCH"
+  echo "INFO: Starting node ($VER) install on $DIST - $ARCH"
   if dpkg -l | grep -qw edgebuilder-node ;then
-    echo "INFO: Node components already installed, exiting"
+    PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
+    echo "INFO: Node Components $PKG_VER already installed, exiting"
     exit 0
   fi
 
@@ -186,9 +188,10 @@ install_cli_deb()
 {
   DIST=$1
   ARCH=$2
-  echo "INFO: Starting CLI install on $DIST - $ARCH"
+  echo "INFO: Starting CLI ($VER) install on $DIST - $ARCH"
   if dpkg -l | grep -qw edgebuilder-cli ;then
-    echo "INFO: CLI already installed, exiting"
+    PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
+    echo "INFO: CLI $PKG_VER already installed, exiting"
     exit 0
   fi
 
@@ -218,9 +221,12 @@ install_cli_rpm()
 {
   DIST=$1
   ARCH=$2
-  echo "INFO: Starting CLI install on $DIST - $ARCH"
+  PKG_MNGR=$3
+
+  echo "INFO: Starting CLI ($VER) install on $DIST - $ARCH"
   if rpm -qa | grep -qw edgebuilder-cli ;then
-    echo "INFO: CLI already installed, exiting"
+    PKG_VER=$("$PKG_MNGR" info --installed edgebuilder-cli | grep Version)
+    echo "INFO: CLI $PKG_VER already installed, exiting"
     exit 0
   fi
 
@@ -232,7 +238,7 @@ install_cli_rpm()
   fi
 
   echo "INFO: Installing"
-  dnf install -y edgebuilder-cli-"$VER"*
+  "$PKG_MNGR" install -y edgebuilder-cli-"$VER"*
 
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-cli -v)
@@ -310,14 +316,16 @@ elif [ "$COMPONENT" = "node" ]; then
     exit 1
   fi
 elif [ "$COMPONENT" = "cli" ]; then
-  
+
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
     if [ -x "$(command -v apt-get)" ]; then
       install_cli_deb "$OS" "$ARCH"
     elif [ -x "$(command -v dnf)" ]; then
-      install_cli_rpm "$OS" "$ARCH"
+      install_cli_rpm "$OS" "$ARCH" "dnf"
+    elif [ -x "$(command -v yum)" ]; then
+      install_cli_rpm "$OS" "$ARCH" "yum"
     else
-      echo "ERROR: The Edge Builder CLI cannot be installed as no suitable package manager has been found (apt or dnf)"
+      echo "ERROR: The Edge Builder CLI cannot be installed as no suitable package manager has been found (apt, dn f or yum)"
       exit 1
     fi
   else
