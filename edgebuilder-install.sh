@@ -85,9 +85,18 @@ install_server()
   DIST=$1
   echo "INFO: Starting server ($VER) install on $DIST"
   if dpkg -l | grep -qw edgebuilder-server ;then
-    PKG_VER=$(dpkg -s edgebuilder-server | grep -i version)
-    echo "INFO: Server $PKG_VER already installed, exiting"
-    exit 0
+    if dpkg -s edgebuilder-server | grep -qw Status.*installed ;then
+      PKG_VER=$(dpkg -s edgebuilder-server | grep -i version)
+      echo "INFO: Server $PKG_VER already installed, exiting"
+      exit 0
+    fi
+  fi
+
+  if dpkg -l | grep -qw docker-ce ;then
+    if dpkg -s docker-ce | grep -qw Status.*installed ;then
+      echo  "ERRPR: docker-ce is installed, please uninstall before continuning"
+      exit 1
+    fi
   fi
 
   apt-get update -qq
@@ -136,9 +145,18 @@ install_node()
   ARCH=$2
   echo "INFO: Starting node ($VER) install on $DIST - $ARCH"
   if dpkg -l | grep -qw edgebuilder-node ;then
-    PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
-    echo "INFO: Node Components $PKG_VER already installed, exiting"
-    exit 0
+    if dpkg -s edgebuilder-node | grep -qw Status.*installed ;then
+      PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
+      echo "INFO: Node Components $PKG_VER already installed, exiting"
+      exit 0
+    fi
+  fi
+
+  if dpkg -l | grep -qw docker-ce ;then
+    if dpkg -s docker-ce | grep -qw Status.*installed ;then
+      echo  "ERRPR: docker-ce is installed, please uninstall before continuning"
+      exit 1
+    fi
   fi
 
   apt-get update -qq
@@ -212,10 +230,13 @@ install_cli_deb()
   DIST=$1
   ARCH=$2
   echo "INFO: Starting CLI ($VER) install on $DIST - $ARCH"
+
   if dpkg -l | grep -qw edgebuilder-cli ;then
-    PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
-    echo "INFO: CLI $PKG_VER already installed, exiting"
-    exit 0
+    if dpkg -s edgebuilder-cli | grep -qw Status.*installed ;then
+      PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
+      echo "INFO: CLI $PKG_VER already installed, exiting"
+      exit 0
+    fi
   fi
 
   if version_under_2_6_23; then
