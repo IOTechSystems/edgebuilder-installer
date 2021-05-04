@@ -13,6 +13,29 @@ baseurl=https://iotech.jfrog.io/artifactory/rpm-release
 enabled=1
 gpgcheck=0'
 
+# Checks that the kernel is compatiable with Golang
+version_under_2_6_23(){
+    return $(uname -r | awk -F '.' '{
+      if ($1 < 2) {
+        print 0;
+      } else if ($1 == 2) {
+        if ($2 <= 6) {
+          print 0;
+        } else if ($2 == 6) {
+          if ($3 <= 23) {
+            print 0
+          } else {
+            print 1
+          }
+        } else {
+          print 1;
+        }
+      } else {
+        print 1;
+      }
+    }')
+}
+
 # Displays simple usage prompt
 display_usage()
 {
@@ -195,6 +218,11 @@ install_cli_deb()
     exit 0
   fi
 
+  if version_under_2_6_23; then
+    echo "ERROR: Kernel version $(uname -r), requires 2.6.23 or above"
+    exit 1
+  fi
+
   echo "INFO: Setting up apt"
   wget -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
   if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/iotech.list ;then
@@ -230,6 +258,11 @@ install_cli_rpm()
     exit 0
   fi
 
+  if version_under_2_6_23; then
+    echo "ERROR: Kernel version $(uname -r), requires 2.6.23 or above"
+    exit 1
+  fi
+
   echo "INFO: Setting up yum/dnf"
   if grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/iotech.repo ;then
     echo "INFO: IoTech repo already added"
@@ -259,7 +292,7 @@ fi
 # If not run as sudo, exit
 if [ "$(id -u)" -ne 0 ]
   then echo "ERROR: Insufficient permissions, please run as root/sudo"
-  exit 2
+  exit 1
 fi
 
 echo "INFO: Detecting OS and Architecture"
