@@ -87,14 +87,14 @@ install_server()
   if dpkg -l | grep -qw edgebuilder-server ;then
     if dpkg -s edgebuilder-server | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-server | grep -i version)
-      echo "INFO: Server $PKG_VER already installed, exiting"
+      echo "INFO: Server ($PKG_VER) already installed, exiting"
       exit 0
     fi
   fi
 
   if dpkg -l | grep -qw docker-ce ;then
     if dpkg -s docker-ce | grep -qw Status.*installed ;then
-      echo  "ERRPR: docker-ce is installed, please uninstall before continuning"
+      echo  "ERRPR: docker-ce is installed, please uninstall before continuing"
       exit 1
     fi
   fi
@@ -103,7 +103,7 @@ install_server()
   apt-get install -y -qq wget
 
   echo "INFO: Setting up apt"
-  wget -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
+  wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
   DIST_NAME=$(get_dist_name "$DIST")
   if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
     echo "INFO: IoTech repo already added"
@@ -147,14 +147,14 @@ install_node()
   if dpkg -l | grep -qw edgebuilder-node ;then
     if dpkg -s edgebuilder-node | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
-      echo "INFO: Node Components $PKG_VER already installed, exiting"
+      echo "INFO: Node Components ($PKG_VER) already installed, exiting"
       exit 0
     fi
   fi
 
   if dpkg -l | grep -qw docker-ce ;then
     if dpkg -s docker-ce | grep -qw Status.*installed ;then
-      echo  "ERRPR: docker-ce is installed, please uninstall before continuning"
+      echo  "ERRPR: docker-ce is installed, please uninstall before continuing"
       exit 1
     fi
   fi
@@ -168,7 +168,7 @@ install_node()
   DIST_TYPE=$(get_dist_type "$DIST")
 
   if [ "$ARCH" = "x86_64" ];then
-    wget -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
+    wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
     if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
       echo "INFO: Salt repo already added"
     else
@@ -176,12 +176,12 @@ install_node()
     fi
 
   elif [ "$ARCH" = "aarch64" ];then
-    wget "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest/salt-common_3003%2Bds-1_all.deb" & wget "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest/salt-minion_3003%2Bds-1_all.deb"
+    wget -q "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest/salt-common_3003%2Bds-1_all.deb" & wget -q "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest/salt-minion_3003%2Bds-1_all.deb"
     apt-get install -y -qq ./*.deb
     rm salt-common_3003+ds-1_all.deb salt-minion_3003+ds-1_all.deb
 
   elif [ "$ARCH" = "armv7l" ];then
-    wget -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/latest/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
+    wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/latest/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
     if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/latest $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
       echo "INFO: Salt repo already added"
     else
@@ -189,7 +189,7 @@ install_node()
     fi
   fi
 
-  wget -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
+  wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
   if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
     echo "INFO: IoTech repo already added"
   else
@@ -234,7 +234,7 @@ install_cli_deb()
   if dpkg -l | grep -qw edgebuilder-cli ;then
     if dpkg -s edgebuilder-cli | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
-      echo "INFO: CLI $PKG_VER already installed, exiting"
+      echo "INFO: CLI ($PKG_VER) already installed, exiting"
       exit 0
     fi
   fi
@@ -245,7 +245,7 @@ install_cli_deb()
   fi
 
   echo "INFO: Setting up apt"
-  wget -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
+  wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
   if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/iotech.list ;then
     echo "INFO: IoTech repo already added"
   else
@@ -275,7 +275,7 @@ install_cli_rpm()
   echo "INFO: Starting CLI ($VER) install on $DIST - $ARCH"
   if rpm -qa | grep -qw edgebuilder-cli ;then
     PKG_VER=$("$PKG_MNGR" info --installed edgebuilder-cli | grep Version)
-    echo "INFO: CLI $PKG_VER already installed, exiting"
+    echo "INFO: CLI ($PKG_VER) already installed, exiting"
     exit 0
   fi
 
