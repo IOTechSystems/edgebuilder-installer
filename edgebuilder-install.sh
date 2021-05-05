@@ -379,7 +379,7 @@ elif [ "$COMPONENT" = "cli" ]; then
     elif [ -x "$(command -v yum)" ]; then
       install_cli_rpm "$OS" "$ARCH" "yum"
     else
-      echo "ERROR: The Edge Builder CLI cannot be installed as no suitable package manager has been found (apt, dn f or yum)"
+      echo "ERROR: The Edge Builder CLI cannot be installed as no suitable package manager has been found (apt, dnf or yum)"
       exit 1
     fi
   else
