@@ -132,9 +132,10 @@ install_server()
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-server)
   if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: Node installation could not be validated"
+    echo "ERROR: Server installation could not be validated"
+  else
+    echo "INFO: Server validation succeeded"
   fi
-  echo "INFO: Validation succeeded"
 }
 
 # Installs the node components
@@ -219,8 +220,9 @@ install_node()
   OUTPUT=$(edgebuilder-node)
   if [ "$OUTPUT" = "" ]; then
     echo "ERROR: Node installation could not be validated"
+  else
+    echo "INFO: Node validation succeeded"
   fi
-  echo "INFO: Validation succeeded"
 }
 
 # Installs the CLI using apt
@@ -260,8 +262,9 @@ install_cli_deb()
   OUTPUT=$(edgebuilder-cli -v)
   if [ "$OUTPUT" = "" ]; then
     echo "ERROR: CLI installation could not be validated"
+  else
+    echo "INFO: CLI validation succeeded"
   fi
-  echo "INFO: Validation succeeded"
 }
 
 # Installs the CLI using dnf
@@ -298,8 +301,9 @@ install_cli_rpm()
   OUTPUT=$(edgebuilder-cli -v)
   if [ "$OUTPUT" = "" ]; then
     echo "ERROR: CLI installation could not be validated"
+  else
+    echo "INFO: CLI validation succeeded"
   fi
-  echo "INFO: Validation succeeded"
 }
 
 # Main starts here:
