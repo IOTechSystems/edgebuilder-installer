@@ -15,7 +15,7 @@ gpgcheck=0'
 
 # Checks that the kernel is compatiable with Golang
 version_under_2_6_23(){
-    return "$(uname -r | awk -F '.' '{
+    return $(uname -r | awk -F '.' '{
       if ($1 < 2) {
         print 0;
       } else if ($1 == 2) {
@@ -33,7 +33,7 @@ version_under_2_6_23(){
       } else {
         print 1;
       }
-    }')"
+    }')
 }
 
 # Displays simple usage prompt
@@ -85,7 +85,7 @@ install_server()
   DIST=$1
   echo "INFO: Starting server ($VER) install on $DIST"
   if dpkg -l | grep -qw edgebuilder-server ;then
-    if dpkg -s edgebuilder-server | grep -qw "Status.*installed" ;then
+    if dpkg -s edgebuilder-server | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-server | grep -i version)
       echo "INFO: Server ($PKG_VER) already installed, exiting"
       exit 0
@@ -93,7 +93,7 @@ install_server()
   fi
 
   if dpkg -l | grep -qw docker-ce ;then
-    if dpkg -s docker-ce | grep -qw "Status.*installed" ;then
+    if dpkg -s docker-ce | grep -qw Status.*installed ;then
       echo  "ERRPR: docker-ce is installed, please uninstall before continuing"
       exit 1
     fi
@@ -123,7 +123,7 @@ install_server()
     else
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
-    usermod -aG docker "$USER"
+    usermod -aG docker $USER
   fi
   systemctl enable docker.service
 
@@ -146,7 +146,7 @@ install_node()
   ARCH=$2
   echo "INFO: Starting node ($VER) install on $DIST - $ARCH"
   if dpkg -l | grep -qw edgebuilder-node ;then
-    if dpkg -s edgebuilder-node | grep -qw "Status.*installed" ;then
+    if dpkg -s edgebuilder-node | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
       echo "INFO: Node Components ($PKG_VER) already installed, exiting"
       exit 0
@@ -154,7 +154,7 @@ install_node()
   fi
 
   if dpkg -l | grep -qw docker-ce ;then
-    if dpkg -s docker-ce | grep -qw "Status.*installed" ;then
+    if dpkg -s docker-ce | grep -qw Status.*installed ;then
       echo  "ERRPR: docker-ce is installed, please uninstall before continuing"
       exit 1
     fi
@@ -210,7 +210,7 @@ install_node()
     else
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
-    usermod -aG docker "$USER"
+    usermod -aG docker $USER
   fi
   systemctl enable docker.service
 
@@ -234,7 +234,7 @@ install_cli_deb()
   echo "INFO: Starting CLI ($VER) install on $DIST - $ARCH"
 
   if dpkg -l | grep -qw edgebuilder-cli ;then
-    if dpkg -s edgebuilder-cli | grep -qw "Status.*installed" ;then
+    if dpkg -s edgebuilder-cli | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
       echo "INFO: CLI ($PKG_VER) already installed, exiting"
       exit 0
@@ -309,7 +309,7 @@ install_cli_rpm()
 # Main starts here:
 
 # If no options are specified
-if [ -z "$1" ];then
+if [ -z $1 ];then
     display_usage
     exit 1
 fi
