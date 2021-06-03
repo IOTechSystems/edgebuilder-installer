@@ -1,6 +1,6 @@
 #!/bin/sh
 COMPONENT=$1
-VER="0.9.0"
+VER="0.9.1"
 
 UBUNTU2004="Ubuntu 20.04"
 UBUNTU1804="Ubuntu 18.04"
