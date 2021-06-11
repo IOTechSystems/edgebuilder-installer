@@ -13,7 +13,7 @@ baseurl=https://iotech.jfrog.io/artifactory/rpm-release
 enabled=1
 gpgcheck=0'
 
-# Checks that the kernel is compatiable with Golang
+# Checks that the kernel is compatible with Golang
 version_under_2_6_23(){
     return $(uname -r | awk -F '.' '{
       if ($1 < 2) {
@@ -67,7 +67,7 @@ get_dist_num()
   fi
 }
 
-# Gets the basic distrubtion type ubuntu, debian etc
+# Gets the basic distribution type ubuntu, debian etc
 get_dist_type()
 {
   if [ "$1" = "$UBUNTU2004" ]||[ "$1" = "$UBUNTU1804" ]; then
@@ -79,7 +79,7 @@ get_dist_type()
 }
 
 # Installs the server components
-# Args: Distributon
+# Args: Distribution
 install_server()
 {
   DIST=$1
@@ -255,8 +255,8 @@ install_cli_deb()
   fi
 
   echo "INFO: Installing"
-  sudo apt update -qq
-  sudo apt install -y -qq edgebuilder-cli="$VER"
+  sudo apt-get update -qq
+  sudo apt-get install -y -qq edgebuilder-cli="$VER"
 
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-cli -v)
