@@ -13,8 +13,9 @@ baseurl=https://iotech.jfrog.io/artifactory/rpm-release
 enabled=1
 gpgcheck=0'
 
-# Checks that the kernel is compatiable with Golang
+# Checks that the kernel is compatible with Golang
 version_under_2_6_23(){
+    # shellcheck disable=SC2046
     return $(uname -r | awk -F '.' '{
       if ($1 < 2) {
         print 0;
@@ -67,7 +68,7 @@ get_dist_num()
   fi
 }
 
-# Gets the basic distrubtion type ubuntu, debian etc
+# Gets the basic distribution type ubuntu, debian etc
 get_dist_type()
 {
   if [ "$1" = "$UBUNTU2004" ]||[ "$1" = "$UBUNTU1804" ]; then
@@ -79,12 +80,13 @@ get_dist_type()
 }
 
 # Installs the server components
-# Args: Distributon
+# Args: Distribution
 install_server()
 {
   DIST=$1
   echo "INFO: Starting server ($VER) install on $DIST"
   if dpkg -l | grep -qw edgebuilder-server ;then
+    # shellcheck disable=SC2062
     if dpkg -s edgebuilder-server | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-server | grep -i version)
       echo "INFO: Server ($PKG_VER) already installed, exiting"
@@ -93,6 +95,7 @@ install_server()
   fi
 
   if dpkg -l | grep -qw docker-ce ;then
+    # shellcheck disable=SC2062
     if dpkg -s docker-ce | grep -qw Status.*installed ;then
       echo  "ERRPR: docker-ce is installed, please uninstall before continuing"
       exit 1
@@ -146,6 +149,7 @@ install_node()
   ARCH=$2
   echo "INFO: Starting node ($VER) install on $DIST - $ARCH"
   if dpkg -l | grep -qw edgebuilder-node ;then
+    # shellcheck disable=SC2062
     if dpkg -s edgebuilder-node | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
       echo "INFO: Node Components ($PKG_VER) already installed, exiting"
@@ -153,6 +157,7 @@ install_node()
     fi
   fi
 
+  # shellcheck disable=SC2062
   if dpkg -l | grep -qw docker-ce ;then
     if dpkg -s docker-ce | grep -qw Status.*installed ;then
       echo  "ERRPR: docker-ce is installed, please uninstall before continuing"
@@ -231,9 +236,11 @@ install_cli_deb()
 {
   DIST=$1
   ARCH=$2
+  # shellcheck disable=SC2062
   echo "INFO: Starting CLI ($VER) install on $DIST - $ARCH"
 
   if dpkg -l | grep -qw edgebuilder-cli ;then
+    # shellcheck disable=SC2062
     if dpkg -s edgebuilder-cli | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
       echo "INFO: CLI ($PKG_VER) already installed, exiting"
@@ -255,8 +262,8 @@ install_cli_deb()
   fi
 
   echo "INFO: Installing"
-  sudo apt update -qq
-  sudo apt install -y -qq edgebuilder-cli="$VER"
+  sudo apt-get update -qq
+  sudo apt-get install -y -qq edgebuilder-cli="$VER"
 
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-cli -v)
