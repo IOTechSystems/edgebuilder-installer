@@ -178,7 +178,7 @@ install_node()
     if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
       echo "INFO: Salt repo already added"
     else
-      echo "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
+      echo "deb [arch=amd64] http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
     fi
 
   elif [ "$ARCH" = "aarch64" ];then
