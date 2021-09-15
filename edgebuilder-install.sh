@@ -1,5 +1,6 @@
 #!/bin/sh
 COMPONENT=$1
+FILE=$2
 VER="1.1.0"
 
 UBUNTU2004="Ubuntu 20.04"
@@ -105,18 +106,24 @@ install_server()
   apt-get update -qq
   apt-get install -y -qq wget
 
-  echo "INFO: Setting up apt"
-  wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
-  DIST_NAME=$(get_dist_name "$DIST")
-  if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
-    echo "INFO: IoTech repo already added"
-  else
-    echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+  # check if using local file for dev purposes
+  echo "INFO: Installing"
+  if [ "$FILE" == "" ]; then  
+    echo "INFO: Setting up apt"
+    wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
+    DIST_NAME=$(get_dist_name "$DIST")
+    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
+      echo "INFO: IoTech repo already added"
+    else
+      echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+    fi
+
+    apt-get update -qq
+    apt-get install -qq -y edgebuilder-server="$VER"
+  else 
+    apt-get install -y ./$FILE
   fi
 
-  echo "INFO: Installing"
-  apt-get update -qq
-  apt-get install -qq -y edgebuilder-server="$VER"
 
   echo "INFO: Configuring user"
   USER=$(logname)
@@ -195,17 +202,22 @@ install_node()
     fi
   fi
 
-  wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
-  if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
-    echo "INFO: IoTech repo already added"
-  else
-    echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+  # check if using local file for dev purposes
+  echo "INFO: Installing"
+  if [ "$FILE" == "" ]; then
+    wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
+    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
+      echo "INFO: IoTech repo already added"
+    else
+      echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+    fi
+
+    apt-get update -qq
+    apt-get install -y -qq edgebuilder-node="$VER"
+  else 
+    apt-get install -y ./$FILE
   fi
 
-  apt-get update -qq
-
-  echo "INFO: Installing"
-  apt-get install -y -qq edgebuilder-node="$VER"
 
   echo "INFO: Configuring user"
   USER=$(logname)
@@ -253,17 +265,22 @@ install_cli_deb()
     exit 1
   fi
 
-  echo "INFO: Setting up apt"
-  wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
-  if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/iotech.list ;then
-    echo "INFO: IoTech repo already added"
-  else
-    echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
-  fi
-
+  # check if using local file for dev purposes
   echo "INFO: Installing"
-  sudo apt-get update -qq
-  sudo apt-get install -y -qq edgebuilder-cli="$VER"
+  if [ "$FILE" == "" ]; then  
+    echo "INFO: Setting up apt"
+    wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
+    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/iotech.list ;then
+      echo "INFO: IoTech repo already added"
+    else
+      echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+    fi
+
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq edgebuilder-cli="$VER"
+  else 
+    apt-get install -y ./$FILE
+  fi
 
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-cli -v)
