@@ -108,8 +108,11 @@ install_server()
 
   # check if using local file for dev purposes
   echo "INFO: Installing"
-  if [ "$FILE" == "" ]; then  
-    echo "INFO: Setting up apt"
+  if test -f "$FILE" ; then
+    apt-get update -qq
+    apt-get install -y ./$FILE
+  else 
+     echo "INFO: Setting up apt"
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     DIST_NAME=$(get_dist_name "$DIST")
     if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
@@ -120,8 +123,6 @@ install_server()
 
     apt-get update -qq
     apt-get install -qq -y edgebuilder-server="$VER"
-  else 
-    apt-get install -y ./$FILE
   fi
 
 
@@ -204,7 +205,11 @@ install_node()
 
   # check if using local file for dev purposes
   echo "INFO: Installing"
-  if [ "$FILE" == "" ]; then
+  echo "FILE = ${FILE}"
+  if test -f "$FILE" ; then
+    apt-get update -qq
+    apt-get install -y ./$FILE
+  else     
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
       echo "INFO: IoTech repo already added"
@@ -214,8 +219,6 @@ install_node()
 
     apt-get update -qq
     apt-get install -y -qq edgebuilder-node="$VER"
-  else 
-    apt-get install -y ./$FILE
   fi
 
 
@@ -267,7 +270,10 @@ install_cli_deb()
 
   # check if using local file for dev purposes
   echo "INFO: Installing"
-  if [ "$FILE" == "" ]; then  
+  if test -f "$FILE" ; then
+    apt-get update -qq
+    apt-get install -y ./$FILE
+  else 
     echo "INFO: Setting up apt"
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/iotech.list ;then
@@ -278,8 +284,6 @@ install_cli_deb()
 
     sudo apt-get update -qq
     sudo apt-get install -y -qq edgebuilder-cli="$VER"
-  else 
-    apt-get install -y ./$FILE
   fi
 
   echo "INFO: Validating installation"
