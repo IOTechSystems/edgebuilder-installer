@@ -15,3 +15,7 @@ The installer assumes that the current user would be used if adding a node by ss
 Usage: sudo ./edgebuilder-install.sh [param]
 
 params: server, node, cli
+
+## Dev info only:
+
+You can supply a second param with either server, node or cli with a path to the file you want to install.
