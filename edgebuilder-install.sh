@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -x
+#set -x
 COMPONENT=$1
 FILE=$2
 UNINSTALL_FLAG=$3
@@ -46,9 +46,11 @@ version_under_2_6_23(){
 # Displays simple usage prompt
 display_usage()
 {
-  echo "Usage: edgebuilder-install.sh [component] [removeflag]"
+  echo "Usage: edgebuilder-install.sh [component] [file] [removeflag] [version]"
   echo "component: server, node, cli"
-  echo "removeflag: (optional) remove"
+  echo "file: (optional) path to the package to install"
+  echo "removeflag: (optional) 'remove' flag for uninstall"
+  echo "version: (optional) version to install"
 }
 
 # Gets the distribution 'name' bionic, focal etc
@@ -104,7 +106,7 @@ install_server()
   if dpkg -l | grep -qw docker-ce ;then
     # shellcheck disable=SC2062
     if dpkg -s docker-ce | grep -qw Status.*installed ;then
-      echo  "ERRPR: docker-ce is installed, please uninstall before continuing"
+      echo  "ERROR: docker-ce is installed, please uninstall before continuing"
       exit 1
     fi
   fi
@@ -251,25 +253,34 @@ install_node()
   fi
 }
 
+remove_iotech_gpg_keys()
+{
+  aptuidLineNum="$(APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key list  | grep --line-number IoTech | awk -F ':' '{print $1}' )"
+  if [ -z $aptuidLineNum ]; then
+     echo "WARN: No IOTech GPG keys found"
+  else
+     sudo apt-key del "$(APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key list |  awk -v var="$aptuidLineNum" 'NR==(var-1){print $0}' )"
+  fi
+}
 
 uninstall_cli_deb()
 {
   DIST=$1
   ARCH=$2
-  # shellcheck disable=SC2062
   echo "INFO: Starting CLI ($VER) uninstall on $DIST - $ARCH"
 
-  # check if using local file for dev purposes
-  echo "INFO: Uninstalling"
   echo "INFO: Removing apt sources"
-  wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
   if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" $APT_IOTECH_SOURCE_FILE ;then
     rm $APT_IOTECH_SOURCE_FILE
   else
-    echo "INFO: IOTech repo already removed"
+    echo "WARN: IOTech repo already removed"
   fi
-  sudo apt-get remove -y -qq edgebuilder-cli="$VER"
 
+  echo "INFO: Removing GPG key for IOTech"
+  remove_iotech_gpg_keys
+
+  echo "INFO: Uninstalling CLI (VER=$VER)"
+  sudo apt-get remove -y -qq edgebuilder-cli="$VER"
 
   echo "INFO: Validating uninstallation"
   if dpkg -l | grep -qw edgebuilder-cli ;then
@@ -470,4 +481,4 @@ fi
 
 
 
-set +x
+#set +x
