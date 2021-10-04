@@ -307,7 +307,7 @@ install_cli_deb()
   if dpkg -l | grep -qw edgebuilder-cli ;then
     # shellcheck disable=SC2062
     if dpkg -s edgebuilder-cli | grep -qw Status.*installed ;then
-      PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
+      PKG_VER=$(dpkg -s edgebuilder-cli | grep -i version)
       echo "INFO: CLI ($PKG_VER) already installed, exiting"
       exit 0
     fi

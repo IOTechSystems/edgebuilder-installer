@@ -5,6 +5,7 @@ COMPONENT=$1
 FILE=$2
 LATEST_VER="1.1.2"
 INSTALLED_VER=""
+TARGET_VER=$3
 
 UBUNTU2004="Ubuntu 20.04"
 UBUNTU1804="Ubuntu 18.04"
@@ -21,7 +22,7 @@ gpgcheck=0'
 installed_version_older(){
 
   eb_component=edgebuilder-$1
-  TARGET_VER=$LATEST_VER
+
     # Check for existing installation
     if dpkg -l | grep -qw "$eb_component" ;then
       if dpkg -s "$eb_component" | grep -qw "Status.*installed" ;then
@@ -322,6 +323,11 @@ fi
 # Detect Arch
 ARCH="$(uname -m)"
 
+# Find the target version
+if [ "$TARGET_VER" = "" ]; then
+  TARGET_VER=LATEST_VER
+fi
+
 # Check compatibility
 echo "INFO: Checking compatibility"
 if [ "$COMPONENT" = "server" ];then
@@ -365,7 +371,7 @@ elif [ "$COMPONENT" = "cli" ]; then
           exit 1
       else
           echo "HERE"
-          sh ./edgebuilder-install.sh cli "" remove
+          sh ./edgebuilder-install.sh cli "" remove "$INSTALLED_VER"
 
       fi
       echo "INFO: Installing cli version ($TARGET_VER)"
