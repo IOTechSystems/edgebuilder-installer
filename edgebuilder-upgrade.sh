@@ -3,10 +3,8 @@
 set -x
 COMPONENT=$1
 FILE=$2
-UNINSTALL_FLAG=$3
-INPUT_VER=$4
-VER="1.1.0"
-APT_IOTECH_SOURCE_FILE="/etc/apt/sources.list.d/iotech.list"
+LATEST_VER="1.1.2"
+INSTALLED_VER=""
 
 UBUNTU2004="Ubuntu 20.04"
 UBUNTU1804="Ubuntu 18.04"
@@ -18,6 +16,44 @@ name=IoTech
 baseurl=https://iotech.jfrog.io/artifactory/rpm-release
 enabled=1
 gpgcheck=0'
+
+# Checks if the installed version is older than the latest version available
+installed_version_older(){
+
+  eb_component=edgebuilder-$1
+  TARGET_VER=$LATEST_VER
+    # Check for existing installation
+    if dpkg -l | grep -qw "$eb_component" ;then
+      if dpkg -s "$eb_component" | grep -qw "Status.*installed" ;then
+        INSTALLED_VER=$(dpkg -s "$eb_component" | grep -i version | sed 's/^.*: //')
+        if [ "$INSTALLED_VER" = "$TARGET_VER" ]; then
+          echo "INFO: $1 (Version: $INSTALLED_VER) already installed, exiting upgrade"
+          return 0
+        else
+          # Check if the installed version is older than target version
+          if dpkg --compare-versions "$INSTALLED_VER" lt "$TARGET_VER" ; then
+
+            echo "INFO: Upgrading $1 version ($INSTALLED_VER) to version ($TARGET_VER)"
+            return 1
+                 
+          else
+           echo "INFO: Installed $1 version ($INSTALLED_VER) is newer than the requested version ($TARGET_VER), exiting upgrade"
+            return 0
+    
+          fi
+        fi
+      else
+        # TODO: We should be able to continue upgrade here, TBD
+        echo "WARN: Broken $1 installation, exiting upgrade"
+        return 0
+      fi
+    else
+      # TODO: No current installation, install the package
+      ./edgebuilder-install.sh "$1"
+       return 0
+    fi
+}
+
 
 # Checks that the kernel is compatible with Golang
 version_under_2_6_23(){
@@ -46,9 +82,8 @@ version_under_2_6_23(){
 # Displays simple usage prompt
 display_usage()
 {
-  echo "Usage: edgebuilder-install.sh [component] [removeflag]"
-  echo "component: server, node, cli"
-  echo "removeflag: (optional) remove"
+  echo "Usage: edgebuilder-upgrade.sh [param]"
+  echo "params: server, node, cli"
 }
 
 # Gets the distribution 'name' bionic, focal etc
@@ -86,7 +121,7 @@ get_dist_type()
 
 }
 
-# Installs the server components
+# Updates the server components
 # Args: Distribution
 install_server()
 {
@@ -116,15 +151,15 @@ install_server()
   echo "INFO: Installing"
   if test -f "$FILE" ; then
     apt-get update -qq
-    apt-get install -y ./$FILE
-  else 
+    apt-get install -y ./"$FILE"
+  else
      echo "INFO: Setting up apt"
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     DIST_NAME=$(get_dist_name "$DIST")
-    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" $APT_IOTECH_SOURCE_FILE ;then
+    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
       echo "INFO: IoTech repo already added"
     else
-      echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a $APT_IOTECH_SOURCE_FILE
+      echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
     fi
 
     apt-get update -qq
@@ -140,7 +175,7 @@ install_server()
     else
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
-    usermod -aG docker $USER
+    usermod -aG docker "$USER"
   fi
   systemctl enable docker.service
 
@@ -214,13 +249,13 @@ install_node()
   echo "FILE = ${FILE}"
   if test -f "$FILE" ; then
     apt-get update -qq
-    apt-get install -y ./$FILE
-  else     
+    apt-get install -y ./"$FILE"
+  else
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
-    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" $APT_IOTECH_SOURCE_FILE ;then
+    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
       echo "INFO: IoTech repo already added"
     else
-      echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a $APT_IOTECH_SOURCE_FILE
+      echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
     fi
 
     apt-get update -qq
@@ -236,7 +271,7 @@ install_node()
     else
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
-    usermod -aG docker $USER
+    usermod -aG docker "$USER"
   fi
   systemctl enable docker.service
 
@@ -252,131 +287,11 @@ install_node()
 }
 
 
-uninstall_cli_deb()
-{
-  DIST=$1
-  ARCH=$2
-  # shellcheck disable=SC2062
-  echo "INFO: Starting CLI ($VER) uninstall on $DIST - $ARCH"
-
-  # check if using local file for dev purposes
-  echo "INFO: Uninstalling"
-  echo "INFO: Removing apt sources"
-  wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
-  if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" $APT_IOTECH_SOURCE_FILE ;then
-    rm $APT_IOTECH_SOURCE_FILE
-  else
-    echo "INFO: IOTech repo already removed"
-  fi
-  sudo apt-get remove -y -qq edgebuilder-cli="$VER"
-
-
-  echo "INFO: Validating uninstallation"
-  if dpkg -l | grep -qw edgebuilder-cli ;then
-      # shellcheck disable=SC2062
-      if dpkg -s edgebuilder-cli | grep -qw Status.*installed ;then
-        PKG_VER=$(dpkg -s edgebuilder-cli | grep -i version)
-        echo "ERROR: CLI ($PKG_VER) still installed, uninstallation failed"
-      fi
-  else
-      echo "INFO: CLI uninstallation succeeded"
-  fi
-  sudo apt-get update -qq
-}
-
-# Installs the CLI using apt
-# Args: Distribution, Architecture
-install_cli_deb()
-{
-  DIST=$1
-  ARCH=$2
-  # shellcheck disable=SC2062
-  echo "INFO: Starting CLI ($VER) install on $DIST - $ARCH"
-
-  if dpkg -l | grep -qw edgebuilder-cli ;then
-    # shellcheck disable=SC2062
-    if dpkg -s edgebuilder-cli | grep -qw Status.*installed ;then
-      PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
-      echo "INFO: CLI ($PKG_VER) already installed, exiting"
-      exit 0
-    fi
-  fi
-
-  if version_under_2_6_23; then
-    echo "ERROR: Kernel version $(uname -r), requires 2.6.23 or above"
-    exit 1
-  fi
-
-  # check if using local file for dev purposes
-  echo "INFO: Installing"
-  if test -f "$FILE" ; then
-    apt-get update -qq
-    apt-get install -y ./$FILE
-  else 
-    echo "INFO: Setting up apt"
-    wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
-    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" $APT_IOTECH_SOURCE_FILE ;then
-      echo "INFO: IoTech repo already added"
-    else
-      echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a $APT_IOTECH_SOURCE_FILE
-    fi
-
-    sudo apt-get update -qq
-    sudo apt-get install -y -qq edgebuilder-cli="$VER"
-  fi
-
-  echo "INFO: Validating installation"
-  OUTPUT=$(edgebuilder-cli -v)
-  if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: CLI installation could not be validated"
-  else
-    echo "INFO: CLI validation succeeded"
-  fi
-}
-
-# Installs the CLI using dnf
-# Args: Distribution, Architecture
-install_cli_rpm()
-{
-  DIST=$1
-  ARCH=$2
-  PKG_MNGR=$3
-
-  echo "INFO: Starting CLI ($VER) install on $DIST - $ARCH"
-  if rpm -qa | grep -qw edgebuilder-cli ;then
-    PKG_VER=$("$PKG_MNGR" info --installed edgebuilder-cli | grep Version)
-    echo "INFO: CLI ($PKG_VER) already installed, exiting"
-    exit 0
-  fi
-
-  if version_under_2_6_23; then
-    echo "ERROR: Kernel version $(uname -r), requires 2.6.23 or above"
-    exit 1
-  fi
-
-  echo "INFO: Setting up yum/dnf"
-  if grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/iotech.repo ;then
-    echo "INFO: IoTech repo already added"
-  else
-    echo "$RPM_REPO_DATA" | sudo tee -a /etc/yum.repos.d/iotech.repo
-  fi
-
-  echo "INFO: Installing"
-  "$PKG_MNGR" install -y edgebuilder-cli-"$VER"*
-
-  echo "INFO: Validating installation"
-  OUTPUT=$(edgebuilder-cli -v)
-  if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: CLI installation could not be validated"
-  else
-    echo "INFO: CLI validation succeeded"
-  fi
-}
 
 # Main starts here:
 
 # If no options are specified
-if [ -z $1 ];then
+if [ -z "$1" ];then
     display_usage
     exit 1
 fi
@@ -406,11 +321,6 @@ fi
 
 # Detect Arch
 ARCH="$(uname -m)"
-
-# If version is provided, use it, otherwise use default
-if [ "$INPUT_VER" != "" ];then
-  VER=$INPUT_VER
-fi
 
 # Check compatibility
 echo "INFO: Checking compatibility"
@@ -449,15 +359,21 @@ elif [ "$COMPONENT" = "cli" ]; then
 
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
     if [ -x "$(command -v apt-get)" ]; then
-      if [ "$UNINSTALL_FLAG" = "remove" ]; then
-        uninstall_cli_deb "$OS" "$ARCH"
+      installed_version_older "$COMPONENT"
+      if [ $? -ne 1 ]; then
+          echo "ERROR: Exiting Edgebuilder upgrade"
+          exit 1
       else
-        install_cli_deb "$OS" "$ARCH"
+          echo "HERE"
+          sh ./edgebuilder-install.sh cli "" remove
+
       fi
+      echo "INFO: Installing cli version ($TARGET_VER)"
+      sh ./edgebuilder-install.sh cli "" "" $TARGET_VER
     elif [ -x "$(command -v dnf)" ]; then
-      install_cli_rpm "$OS" "$ARCH" "dnf"
+      upgrade_cli_rpm "$OS" "$ARCH" "dnf"
     elif [ -x "$(command -v yum)" ]; then
-      install_cli_rpm "$OS" "$ARCH" "yum"
+      upgrade_cli_rpm "$OS" "$ARCH" "yum"
     else
       echo "ERROR: The Edge Builder CLI cannot be installed as no suitable package manager has been found (apt, dnf or yum)"
       exit 1
@@ -467,7 +383,5 @@ elif [ "$COMPONENT" = "cli" ]; then
     exit 1
   fi
 fi
-
-
 
 set +x
