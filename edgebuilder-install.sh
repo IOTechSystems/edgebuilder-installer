@@ -95,7 +95,6 @@ get_dist_type()
 
 get_installed_version_deb()
 {
-  COMPONENT=$1
   if dpkg -l | grep -qw edgebuilder-"$COMPONENT" ;then
     if dpkg -s edgebuilder-"$COMPONENT" | grep -qw "Status.*installed" ;then
       dpkg -s edgebuilder-"$COMPONENT" | grep -i version | sed 's/^.*: //'
@@ -105,9 +104,10 @@ get_installed_version_deb()
 
 add_iotech_apt_sources()
 {
+  DIST_NAME=$1
   echo "INFO: Setting up apt"
   wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
-  DIST_NAME=$(get_dist_name "$DIST")
+
   if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" $APT_IOTECH_SOURCE_FILE ;then
     echo "INFO: IoTech repo already added"
   else
@@ -120,8 +120,9 @@ add_iotech_apt_sources()
 
 remove_iotech_apt_sources()
 {
+  DIST_NAME=$1
   echo "INFO: removing IOTech sources"
-  if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" $APT_IOTECH_SOURCE_FILE ;then
+  if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" $APT_IOTECH_SOURCE_FILE ;then
     rm $APT_IOTECH_SOURCE_FILE
   else
     echo "WARN: IOTech repo already removed"
@@ -129,6 +130,38 @@ remove_iotech_apt_sources()
 
   echo "INFO: Removing IOTech GPG key"
   remove_iotech_gpg_keys
+}
+
+remove_iotech_gpg_keys()
+{
+  aptuidLineNum="$(APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key list  | grep --line-number IoTech | awk -F ':' '{print $1}' )"
+  if [ -z "$aptuidLineNum" ]; then
+     echo "WARN: No IOTech GPG keys found"
+  else
+     sudo apt-key del "$(APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key list |  awk -v var="$aptuidLineNum" 'NR==(var-1){print $0}' )"
+  fi
+}
+
+validate_install()
+{
+  echo "INFO: Validating installation"
+  OUTPUT=$(edgebuilder-"$COMPONENT")
+  if [ "$OUTPUT" = "" ]; then
+    echo "ERROR: $COMPONENT installation could not be validated"
+  else
+    echo "INFO: $COMPONENT validation succeeded"
+  fi
+}
+
+validate_uninstall()
+{
+  echo "INFO: Validating uninstallation"
+  INSTALLED_VER=$(get_installed_version_deb "$COMPONENT")
+  if [ "$INSTALLED_VER" != "" ]; then
+    echo "ERROR: $COMPONENT ($INSTALLED_VER) still installed, uninstallation failed"
+  else
+    echo "INFO: $COMPONENT uninstallation succeeded"
+  fi
 }
 
 # Installs the server components
@@ -160,7 +193,7 @@ install_server()
     apt-get update -qq
     apt-get install -y ./"$FILE"
   else
-    add_iotech_apt_sources
+    add_iotech_apt_sources "$(get_dist_name "$DIST")"
     apt-get install -qq -y edgebuilder-server="$VER"
   fi
 
@@ -179,13 +212,7 @@ install_server()
 
   echo "INFO: Server installation complete"
 
-  echo "INFO: Validating installation"
-  OUTPUT=$(edgebuilder-server)
-  if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: Server installation could not be validated"
-  else
-    echo "INFO: Server validation succeeded"
-  fi
+  validate_install
 }
 
 # Installs the node components
@@ -246,7 +273,7 @@ install_node()
     apt-get update -qq
     apt-get install -y ./"$FILE"
   else     
-    add_iotech_apt_sources
+    add_iotech_apt_sources "$(get_dist_name "$DIST")"
     apt-get install -y -qq edgebuilder-node="$VER"
   fi
 
@@ -265,46 +292,10 @@ install_node()
 
   echo "INFO: Node installation complete"
 
-  echo "INFO: Validating installation"
-  OUTPUT=$(edgebuilder-node)
-  if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: Node installation could not be validated"
-  else
-    echo "INFO: Node validation succeeded"
-  fi
+  validate_install
 }
 
-remove_iotech_gpg_keys()
-{
-  aptuidLineNum="$(APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key list  | grep --line-number IoTech | awk -F ':' '{print $1}' )"
-  if [ -z "$aptuidLineNum" ]; then
-     echo "WARN: No IOTech GPG keys found"
-  else
-     sudo apt-key del "$(APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key list |  awk -v var="$aptuidLineNum" 'NR==(var-1){print $0}' )"
-  fi
-}
 
-validate_install()
-{
-  echo "INFO: Validating installation"
-  OUTPUT=$(edgebuilder-cli -v)
-  if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: CLI installation could not be validated"
-  else
-    echo "INFO: CLI validation succeeded"
-  fi
-}
-
-validate_uninstall()
-{
-  echo "INFO: Validating uninstallation"
-  INSTALLED_VER=$(get_installed_version_deb cli)
-  if [ "$INSTALLED_VER" != "" ]; then
-    echo "ERROR: CLI ($INSTALLED_VER) still installed, uninstallation failed"
-  else
-    echo "INFO: CLI uninstallation succeeded"
-  fi
-}
 
 # Uninstalls the CLI using apt
 # Args: Distribution, Architecture
@@ -313,30 +304,11 @@ uninstall_cli_deb()
   DIST=$1
   ARCH=$2
   echo "INFO: Starting CLI ($VER) uninstall on $DIST - $ARCH"
-  #remove_iotech_apt_sources
-  echo "INFO: removing IOTech sources"
-    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" $APT_IOTECH_SOURCE_FILE ;then
-      rm $APT_IOTECH_SOURCE_FILE
-    else
-      echo "WARN: IOTech repo already removed"
-    fi
-
-    echo "INFO: Removing IOTech GPG key"
-    remove_iotech_gpg_keys
-
   echo "INFO: Uninstalling CLI (VER=$VER)"
   sudo apt-get remove -y -qq edgebuilder-cli="$VER"
-
- # validate_uninstall
- echo "INFO: Validating uninstallation"
-   INSTALLED_VER=$(get_installed_version_deb cli)
-   if [ "$INSTALLED_VER" != "" ]; then
-     echo "ERROR: CLI ($INSTALLED_VER) still installed, uninstallation failed"
-   else
-     echo "INFO: CLI uninstallation succeeded"
-   fi
-
+  remove_iotech_apt_sources "all"
   sudo apt-get update -qq
+  validate_uninstall
 }
 
 # Installs the CLI using apt
@@ -364,26 +336,11 @@ install_cli_deb()
     apt-get update -qq
     apt-get install -y ./"$FILE"
   else 
-    echo "INFO: Setting up apt"
-    wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
-    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/iotech.list ;then
-      echo "INFO: IoTech repo already added"
-    else
-      echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
-    fi
-
-    sudo apt-get update -qq
+    add_iotech_apt_sources "all"
     sudo apt-get install -y -qq edgebuilder-cli="$VER"
   fi
 
-  #validate_install
-  echo "INFO: Validating installation"
-  OUTPUT=$(edgebuilder-cli -v)
-  if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: CLI installation could not be validated"
-  else
-    echo "INFO: CLI validation succeeded"
-  fi
+  validate_install
 }
 
 # Installs the CLI using dnf

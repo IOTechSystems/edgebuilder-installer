@@ -33,14 +33,12 @@ installed_version_older(){
         else
           # Check if the installed version is older than target version
           if dpkg --compare-versions "$INSTALLED_VER" lt "$TARGET_VER" ; then
-
             echo "INFO: Upgrading $1 version ($INSTALLED_VER) to version ($TARGET_VER)"
             return 1
-                 
+
           else
-           echo "INFO: Installed $1 version ($INSTALLED_VER) is newer than the requested version ($TARGET_VER), exiting upgrade"
+            echo "INFO: Installed $1 version ($INSTALLED_VER) is newer than the requested version ($TARGET_VER), exiting upgrade"
             return 0
-    
           fi
         fi
       else
@@ -49,9 +47,10 @@ installed_version_older(){
         return 0
       fi
     else
-      # TODO: No current installation, install the package
+      # No current installation, install the package
+      echo "INFO: $1 not currently installed"
       ./edgebuilder-install.sh "$1" "$TARGET_VER" "" "$FILE"
-       return 0
+      return 1
     fi
 }
 
