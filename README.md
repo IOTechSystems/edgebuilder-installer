@@ -12,10 +12,12 @@ The installer assumes that the current user would be used if adding a node by ss
 
 ## Usage:
 
-Usage: sudo ./edgebuilder-install.sh [param]
+Usage: sudo ./edgebuilder-install.sh [component] [version] [remove] 
 
-params: server, node, cli
+component: Edge Builder component to install/uninstall (server, node, cli)
+version: The component version ( defaults to the latest version set in the script)
+remove: Flag to indicate uninstallation (remove)
 
 ## Dev info only:
 
-You can supply a second param with either server, node or cli with a path to the file you want to install.
+You can supply a fourth param with either server, node or cli with a path to the file you want to install.

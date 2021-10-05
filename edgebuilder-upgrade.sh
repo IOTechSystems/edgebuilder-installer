@@ -1,11 +1,11 @@
 #!/bin/sh
 
 set -x
-COMPONENT=$1
-FILE=$2
 LATEST_VER="1.1.2"
 INSTALLED_VER=""
-TARGET_VER=$3
+COMPONENT=$1
+TARGET_VER=$2
+FILE=$3
 
 UBUNTU2004="Ubuntu 20.04"
 UBUNTU1804="Ubuntu 18.04"
@@ -50,7 +50,7 @@ installed_version_older(){
       fi
     else
       # TODO: No current installation, install the package
-      ./edgebuilder-install.sh "$1"
+      ./edgebuilder-install.sh "$1" "$TARGET_VER" "" "$FILE"
        return 0
     fi
 }
@@ -83,8 +83,10 @@ version_under_2_6_23(){
 # Displays simple usage prompt
 display_usage()
 {
-  echo "Usage: edgebuilder-upgrade.sh [param]"
-  echo "params: server, node, cli"
+  echo "Usage: edgebuilder-upgrade.sh [component] [version] [file]"
+  echo "component: The Edge Builder component to upgrade (server, node, cli)"
+  echo "version: The version to upgrade to (e.g. 1.1.3)"
+  echo "file: Path to the file "
 }
 
 # Gets the distribution 'name' bionic, focal etc
@@ -325,7 +327,7 @@ ARCH="$(uname -m)"
 
 # Find the target version
 if [ "$TARGET_VER" = "" ]; then
-  TARGET_VER=LATEST_VER
+  TARGET_VER=$LATEST_VER
 fi
 
 # Check compatibility
@@ -367,15 +369,14 @@ elif [ "$COMPONENT" = "cli" ]; then
     if [ -x "$(command -v apt-get)" ]; then
       installed_version_older "$COMPONENT"
       if [ $? -ne 1 ]; then
-          echo "ERROR: Exiting Edgebuilder upgrade"
+          echo "ERROR: Exiting Edge Builder upgrade"
           exit 1
       else
-          echo "HERE"
-          sh ./edgebuilder-install.sh cli "" remove "$INSTALLED_VER"
+          sh ./edgebuilder-install.sh cli "$INSTALLED_VER" remove ""
 
       fi
       echo "INFO: Installing cli version ($TARGET_VER)"
-      sh ./edgebuilder-install.sh cli "" "" $TARGET_VER
+      sh ./edgebuilder-install.sh cli "$TARGET_VER" "" ""
     elif [ -x "$(command -v dnf)" ]; then
       upgrade_cli_rpm "$OS" "$ARCH" "dnf"
     elif [ -x "$(command -v yum)" ]; then
