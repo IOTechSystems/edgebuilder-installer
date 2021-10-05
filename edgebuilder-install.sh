@@ -1,11 +1,15 @@
 #!/bin/sh
 
 #set -x
+# Define the latest version available here
+VER="1.1.3"
+
 COMPONENT=$1
-FILE=$2
+INPUT_VER=$2
 UNINSTALL_FLAG=$3
-INPUT_VER=$4
-VER="1.1.0"
+FILE=$4
+
+# Define constants
 APT_IOTECH_SOURCE_FILE="/etc/apt/sources.list.d/iotech.list"
 
 UBUNTU2004="Ubuntu 20.04"
@@ -46,11 +50,12 @@ version_under_2_6_23(){
 # Displays simple usage prompt
 display_usage()
 {
-  echo "Usage: edgebuilder-install.sh [component] [file] [removeflag] [version]"
+  echo "Usage: edgebuilder-install.sh [component] [version] [removeflag]  [file] "
   echo "component: server, node, cli"
-  echo "file: (optional) path to the package to install"
-  echo "removeflag: (optional) 'remove' flag for uninstall"
   echo "version: (optional) version to install"
+  echo "removeflag: (optional) 'remove' flag for uninstall"
+  echo "file: (optional) path to the package to install"
+
 }
 
 # Gets the distribution 'name' bionic, focal etc
@@ -88,19 +93,54 @@ get_dist_type()
 
 }
 
+get_installed_version_deb()
+{
+  COMPONENT=$1
+  if dpkg -l | grep -qw edgebuilder-"$COMPONENT" ;then
+    if dpkg -s edgebuilder-"$COMPONENT" | grep -qw "Status.*installed" ;then
+      dpkg -s edgebuilder-"$COMPONENT" | grep -i version | sed 's/^.*: //'
+    fi
+  fi
+}
+
+add_iotech_apt_sources()
+{
+  echo "INFO: Setting up apt"
+  wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
+  DIST_NAME=$(get_dist_name "$DIST")
+  if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" $APT_IOTECH_SOURCE_FILE ;then
+    echo "INFO: IoTech repo already added"
+  else
+    echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a $APT_IOTECH_SOURCE_FILE
+  fi
+
+  apt-get update -qq
+
+}
+
+remove_iotech_apt_sources()
+{
+  echo "INFO: removing IOTech sources"
+  if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" $APT_IOTECH_SOURCE_FILE ;then
+    rm $APT_IOTECH_SOURCE_FILE
+  else
+    echo "WARN: IOTech repo already removed"
+  fi
+
+  echo "INFO: Removing IOTech GPG key"
+  remove_iotech_gpg_keys
+}
+
 # Installs the server components
 # Args: Distribution
 install_server()
 {
   DIST=$1
   echo "INFO: Starting server ($VER) install on $DIST"
-  if dpkg -l | grep -qw edgebuilder-server ;then
-    # shellcheck disable=SC2062
-    if dpkg -s edgebuilder-server | grep -qw Status.*installed ;then
-      PKG_VER=$(dpkg -s edgebuilder-server | grep -i version)
-      echo "INFO: Server ($PKG_VER) already installed, exiting"
-      exit 0
-    fi
+  INSTALLED_VER=$(get_installed_version_deb server)
+  if [ "$INSTALLED_VER" != "" ]; then
+    echo "WARN: Server Components ($INSTALLED_VER) already installed, exiting"
+    exit 0
   fi
 
   if dpkg -l | grep -qw docker-ce ;then
@@ -142,7 +182,7 @@ install_server()
     else
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
-    usermod -aG docker $USER
+    usermod -aG docker "$USER"
   fi
   systemctl enable docker.service
 
@@ -164,19 +204,16 @@ install_node()
   DIST=$1
   ARCH=$2
   echo "INFO: Starting node ($VER) install on $DIST - $ARCH"
-  if dpkg -l | grep -qw edgebuilder-node ;then
-    # shellcheck disable=SC2062
-    if dpkg -s edgebuilder-node | grep -qw Status.*installed ;then
-      PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
-      echo "INFO: Node Components ($PKG_VER) already installed, exiting"
-      exit 0
-    fi
+  INSTALLED_VER=$(get_installed_version_deb node)
+  if [ "$INSTALLED_VER" != "" ]; then
+    echo "WARN: Node Components ($INSTALLED_VER) already installed, exiting"
+    exit 0
   fi
 
   # shellcheck disable=SC2062
   if dpkg -l | grep -qw docker-ce ;then
     if dpkg -s docker-ce | grep -qw Status.*installed ;then
-      echo  "ERRPR: docker-ce is installed, please uninstall before continuing"
+      echo  "ERROR: docker-ce is installed, please uninstall before continuing"
       exit 1
     fi
   fi
@@ -216,7 +253,7 @@ install_node()
   echo "FILE = ${FILE}"
   if test -f "$FILE" ; then
     apt-get update -qq
-    apt-get install -y ./$FILE
+    apt-get install -y ./"$FILE"
   else     
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" $APT_IOTECH_SOURCE_FILE ;then
@@ -238,7 +275,7 @@ install_node()
     else
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
-    usermod -aG docker $USER
+    usermod -aG docker "$USER"
   fi
   systemctl enable docker.service
 
@@ -256,13 +293,37 @@ install_node()
 remove_iotech_gpg_keys()
 {
   aptuidLineNum="$(APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key list  | grep --line-number IoTech | awk -F ':' '{print $1}' )"
-  if [ -z $aptuidLineNum ]; then
+  if [ -z "$aptuidLineNum" ]; then
      echo "WARN: No IOTech GPG keys found"
   else
      sudo apt-key del "$(APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key list |  awk -v var="$aptuidLineNum" 'NR==(var-1){print $0}' )"
   fi
 }
 
+validate_install()
+{
+  echo "INFO: Validating installation"
+  OUTPUT=$(edgebuilder-cli -v)
+  if [ "$OUTPUT" = "" ]; then
+    echo "ERROR: CLI installation could not be validated"
+  else
+    echo "INFO: CLI validation succeeded"
+  fi
+}
+
+validate_uninstall()
+{
+  echo "INFO: Validating uninstallation"
+  INSTALLED_VER=$(get_installed_version_deb cli)
+  if [ "$INSTALLED_VER" != "" ]; then
+    echo "ERROR: CLI ($INSTALLED_VER) still installed, uninstallation failed"
+  else
+    echo "INFO: CLI uninstallation succeeded"
+  fi
+}
+
+# Uninstalls the CLI using apt
+# Args: Distribution, Architecture
 uninstall_cli_deb()
 {
   DIST=$1
@@ -276,22 +337,21 @@ uninstall_cli_deb()
     echo "WARN: IOTech repo already removed"
   fi
 
-  echo "INFO: Removing GPG key for IOTech"
-  remove_iotech_gpg_keys
+    echo "INFO: Removing IOTech GPG key"
+    remove_iotech_gpg_keys
 
   echo "INFO: Uninstalling CLI (VER=$VER)"
   sudo apt-get remove -y -qq edgebuilder-cli="$VER"
 
-  echo "INFO: Validating uninstallation"
-  if dpkg -l | grep -qw edgebuilder-cli ;then
-      # shellcheck disable=SC2062
-      if dpkg -s edgebuilder-cli | grep -qw Status.*installed ;then
-        PKG_VER=$(dpkg -s edgebuilder-cli | grep -i version)
-        echo "ERROR: CLI ($PKG_VER) still installed, uninstallation failed"
-      fi
-  else
-      echo "INFO: CLI uninstallation succeeded"
-  fi
+ # validate_uninstall
+ echo "INFO: Validating uninstallation"
+   INSTALLED_VER=$(get_installed_version_deb cli)
+   if [ "$INSTALLED_VER" != "" ]; then
+     echo "ERROR: CLI ($INSTALLED_VER) still installed, uninstallation failed"
+   else
+     echo "INFO: CLI uninstallation succeeded"
+   fi
+
   sudo apt-get update -qq
 }
 
@@ -301,16 +361,12 @@ install_cli_deb()
 {
   DIST=$1
   ARCH=$2
-  # shellcheck disable=SC2062
-  echo "INFO: Starting CLI ($VER) install on $DIST - $ARCH"
 
-  if dpkg -l | grep -qw edgebuilder-cli ;then
-    # shellcheck disable=SC2062
-    if dpkg -s edgebuilder-cli | grep -qw Status.*installed ;then
-      PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
-      echo "INFO: CLI ($PKG_VER) already installed, exiting"
+  echo "INFO: Starting CLI ($VER) install on $DIST - $ARCH"
+  INSTALLED_VER=$(get_installed_version_deb cli)
+  if [ "$INSTALLED_VER" != "" ]; then
+      echo "WARN: CLI ($INSTALLED_VER) already installed, exiting"
       exit 0
-    fi
   fi
 
   if version_under_2_6_23; then
@@ -322,7 +378,7 @@ install_cli_deb()
   echo "INFO: Installing"
   if test -f "$FILE" ; then
     apt-get update -qq
-    apt-get install -y ./$FILE
+    apt-get install -y ./"$FILE"
   else 
     echo "INFO: Setting up apt"
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
@@ -336,6 +392,7 @@ install_cli_deb()
     sudo apt-get install -y -qq edgebuilder-cli="$VER"
   fi
 
+  #validate_install
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-cli -v)
   if [ "$OUTPUT" = "" ]; then
@@ -387,7 +444,7 @@ install_cli_rpm()
 # Main starts here:
 
 # If no options are specified
-if [ -z $1 ];then
+if [ -z "$1" ];then
     display_usage
     exit 1
 fi
@@ -418,9 +475,19 @@ fi
 # Detect Arch
 ARCH="$(uname -m)"
 
-# If version is provided, use it, otherwise use default
+# If version is provided, use it, otherwise use default for installation
 if [ "$INPUT_VER" != "" ];then
   VER=$INPUT_VER
+fi
+# For uninstallation, the version installed is to be removed
+if [ "$UNINSTALL_FLAG" = "remove" ]; then
+  INSTALLED_VER=$(get_installed_version_deb "$COMPONENT")
+  if [ "$INSTALLED_VER" = "" ]; then
+    echo "INFO: Edge Builder $COMPONENT not currently installed, nothing to uninstall"
+    exit 1
+  else
+     VER=$INSTALLED_VER
+  fi
 fi
 
 # Check compatibility
@@ -478,7 +545,5 @@ elif [ "$COMPONENT" = "cli" ]; then
     exit 1
   fi
 fi
-
-
 
 #set +x
