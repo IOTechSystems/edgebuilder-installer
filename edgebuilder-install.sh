@@ -365,26 +365,25 @@ install_cli_deb()
     apt-get install -y ./"$FILE"
   else 
     echo "INFO: Setting up apt"
-      wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
-      DIST_NAME=$(get_dist_name "$DIST")
-      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" $APT_IOTECH_SOURCE_FILE ;then
-        echo "INFO: IoTech repo already added"
-      else
-        echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a $APT_IOTECH_SOURCE_FILE
-      fi
+    wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
+    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/iotech.list ;then
+      echo "INFO: IoTech repo already added"
+    else
+      echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+    fi
 
-      apt-get update -qq
-      apt-get install -y -qq edgebuilder-node="$VER"
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq edgebuilder-cli="$VER"
   fi
 
   #validate_install
   echo "INFO: Validating installation"
-    OUTPUT=$(edgebuilder-cli -v)
-    if [ "$OUTPUT" = "" ]; then
-      echo "ERROR: CLI installation could not be validated"
-    else
-      echo "INFO: CLI validation succeeded"
-    fi
+  OUTPUT=$(edgebuilder-cli -v)
+  if [ "$OUTPUT" = "" ]; then
+    echo "ERROR: CLI installation could not be validated"
+  else
+    echo "INFO: CLI validation succeeded"
+  fi
 }
 
 # Installs the CLI using dnf
