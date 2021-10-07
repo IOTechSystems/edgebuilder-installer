@@ -49,7 +49,9 @@ display_usage()
 # Gets the distribution 'name' bionic, focal etc
 get_dist_name()
 {
-  if [ "$1" = "$UBUNTU2004" ]; then
+  if [ "$1" = "$UBUNTU2014" ]; then
+    echo "hirsute"
+  elif [ "$1" = "$UBUNTU2004" ]; then
     echo "focal"
   elif  [ "$1" = "$UBUNTU1804" ]; then
     echo "bionic"
@@ -61,7 +63,9 @@ get_dist_name()
 # Gets the distribution number 20.04, 18.04 etc
 get_dist_num()
 {
-  if [ "$1" = "$UBUNTU2004" ]; then
+  if [ "$1" = "$UBUNTU2104" ]; then
+    echo "21.04"
+  elif [ "$1" = "$UBUNTU2004" ]; then
     echo "20.04"
   elif  [ "$1" = "$UBUNTU1804" ]; then
     echo "18.04"
@@ -73,7 +77,7 @@ get_dist_num()
 # Gets the basic distribution type ubuntu, debian etc
 get_dist_type()
 {
-  if [ "$1" = "$UBUNTU2004" ] || [ "$1" = "$UBUNTU1804" ]; then
+  if [ "$1" = "$UBUNTU2104" ] || [ "$1" = "$UBUNTU2004" ] || [ "$1" = "$UBUNTU1804" ]; then
     echo "ubuntu"
   elif  [ "$1" = "$DEBIAN10" ] || [ "$1" = "$RASPBIAN10" ]; then
     echo "debian"
@@ -373,7 +377,7 @@ ARCH="$(uname -m)"
 echo "INFO: Checking compatibility"
 if [ "$COMPONENT" = "server" ];then
   if [ "$ARCH" = "x86_64" ];then
-    if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN10" ];then
+    if [ "$OS" = "$UBUNTU2104" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN10" ];then
       install_server "$OS"
     else
       echo "ERROR: The Edge Builder server components are not supported on $OS - $ARCH"
