@@ -1,7 +1,7 @@
 #!/bin/sh
 COMPONENT=$1
 FILE=$2
-VER="1.2.0"
+VER="1.1.3"
 
 UBUNTU2104="Ubuntu 21.04"
 UBUNTU2004="Ubuntu 20.04"
@@ -49,7 +49,7 @@ display_usage()
 # Gets the distribution 'name' bionic, focal etc
 get_dist_name()
 {
-  if [ "$1" = "$UBUNTU2014" ]; then
+  if [ "$1" = "$UBUNTU2104" ]; then
     echo "hirsute"
   elif [ "$1" = "$UBUNTU2004" ]; then
     echo "focal"
@@ -139,7 +139,7 @@ install_server()
     else
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
-    usermod -aG docker $USER
+    usermod -aG docker "$USER"
   fi
   systemctl enable docker.service
 
@@ -173,13 +173,13 @@ install_node()
   # shellcheck disable=SC2062
   if dpkg -l | grep -qw docker-ce ;then
     if dpkg -s docker-ce | grep -qw Status.*installed ;then
-      echo  "ERRPR: docker-ce is installed, please uninstall before continuing"
+      echo  "ERROR: docker-ce is installed, please uninstall before continuing"
       exit 1
     fi
   fi
 
   apt-get update -qq
-  apt-get install -y -qq wget
+  apt-get install -y -qq wget curl
 
   echo "INFO: Setting up apt"
   DIST_NAME=$(get_dist_name "$DIST")
@@ -187,11 +187,12 @@ install_node()
   DIST_TYPE=$(get_dist_type "$DIST")
 
   if [ "$ARCH" = "x86_64" ];then
-    wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
-    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
+
+    if grep -q "deb https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/amd64/3003 $DIST_NAME main" /etc/apt/sources.list.d/salt.list ;then
       echo "INFO: Salt repo already added"
     else
-      echo "deb [arch=amd64] http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
+      sudo curl -fsSL -o /usr/share/keyrings/salt-archive-keyring.gpg "https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/amd64/3003/salt-archive-keyring.gpg"
+      echo "deb [signed-by=/usr/share/keyrings/salt-archive-keyring.gpg arch=amd64] https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/amd64/3003 $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/salt.list
     fi
 
   elif [ "$ARCH" = "aarch64" ];then
@@ -213,7 +214,7 @@ install_node()
   echo "FILE = ${FILE}"
   if test -f "$FILE" ; then
     apt-get update -qq
-    apt-get install -y ./$FILE
+    apt-get install -y ./"$FILE"
   else     
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
