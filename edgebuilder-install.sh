@@ -103,7 +103,7 @@ install_server()
   if dpkg -l | grep -qw docker-ce ;then
     # shellcheck disable=SC2062
     if dpkg -s docker-ce | grep -qw Status.*installed ;then
-      echo  "ERRPR: docker-ce is installed, please uninstall before continuing"
+      echo  "ERROR: docker-ce is installed, please uninstall before continuing"
       exit 1
     fi
   fi
@@ -179,7 +179,7 @@ install_node()
   fi
 
   apt-get update -qq
-  apt-get install -y -qq wget curl
+  apt-get install -y -qq wget
 
   echo "INFO: Setting up apt"
   DIST_NAME=$(get_dist_name "$DIST")
@@ -187,12 +187,11 @@ install_node()
   DIST_TYPE=$(get_dist_type "$DIST")
 
   if [ "$ARCH" = "x86_64" ];then
-
-    if grep -q "deb https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/amd64/3003 $DIST_NAME main" /etc/apt/sources.list.d/salt.list ;then
+    wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
+    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
       echo "INFO: Salt repo already added"
     else
-      sudo curl -fsSL -o /usr/share/keyrings/salt-archive-keyring.gpg "https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/amd64/3003/salt-archive-keyring.gpg"
-      echo "deb [signed-by=/usr/share/keyrings/salt-archive-keyring.gpg arch=amd64] https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/amd64/3003 $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/salt.list
+      echo "deb [arch=amd64] http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/latest $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
     fi
 
   elif [ "$ARCH" = "aarch64" ];then
