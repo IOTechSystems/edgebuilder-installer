@@ -143,6 +143,8 @@ install_server()
   fi
   systemctl enable docker.service
 
+  systemctl is-active --quiet docker.service || systemctl start docker.service
+
   echo "INFO: Server installation complete"
 
   echo "INFO: Validating installation"
@@ -238,6 +240,8 @@ install_node()
     usermod -aG docker $USER
   fi
   systemctl enable docker.service
+
+  systemctl is-active --quiet docker.service || systemctl start docker.service
 
   echo "INFO: Node installation complete"
 
