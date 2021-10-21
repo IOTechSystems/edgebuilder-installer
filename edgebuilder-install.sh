@@ -1,7 +1,31 @@
 #!/bin/sh
 COMPONENT=$1
-FILE=$2
-VER="1.1.3"
+shift
+
+FILE=""
+REPOAUTH=""
+VER="1.2.0.dev"
+
+while [ "$1" != "" ]; do
+    case $1 in
+        -f | --file)
+            FILE="$2"
+            shift
+            shift
+            ;;
+        -r | --repo-auth)
+            REPOAUTH="$2"
+            shift
+            shift
+            ;;
+        *)
+            UNKNOWN_ARG="$1"
+            echo "$NODE_ERROR_PREFIX unknown argument '$UNKNOWN_ARG'"
+            display_usage
+            exit 3
+            ;;
+    esac
+done
 
 UBUNTU2104="Ubuntu 21.04"
 UBUNTU2004="Ubuntu 20.04"
@@ -116,14 +140,23 @@ install_server()
   if test -f "$FILE" ; then
     apt-get update -qq
     apt-get install -y ./$FILE
-  else 
-     echo "INFO: Setting up apt"
+  else
+    echo "INFO: Setting up apt"
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     DIST_NAME=$(get_dist_name "$DIST")
-    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
-      echo "INFO: IoTech repo already added"
+    if [ "$REPOAUTH" != "" ]; then
+      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
+        echo "INFO: IoTech PRIVATE repo already added"
+      else
+        echo "INFO: Adding IoTech PRIVATE repo"
+        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+      fi
     else
-      echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
+        echo "INFO: IoTech repo already added"
+      else
+        echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+      fi
     fi
 
     apt-get update -qq
@@ -216,14 +249,22 @@ install_node()
   if test -f "$FILE" ; then
     apt-get update -qq
     apt-get install -y ./"$FILE"
-  else     
+  else
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
-    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
-      echo "INFO: IoTech repo already added"
+    if [ "$REPOAUTH" != "" ]; then
+      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
+        echo "INFO: IoTech PRIVATE repo already added"
+      else
+        echo "INFO: Adding IoTech PRIVATE repo"
+        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+      fi
     else
-      echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
+        echo "INFO: IoTech repo already added"
+      else
+        echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+      fi
     fi
-
     apt-get update -qq
     apt-get install -y -qq edgebuilder-node="$VER"
   fi
@@ -282,13 +323,22 @@ install_cli_deb()
   if test -f "$FILE" ; then
     apt-get update -qq
     apt-get install -y ./$FILE
-  else 
+  else
     echo "INFO: Setting up apt"
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
-    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/iotech.list ;then
-      echo "INFO: IoTech repo already added"
+    if [ "$REPOAUTH" != "" ]; then
+      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" /etc/apt/sources.list.d/iotech.list ;then
+        echo "INFO: IoTech PRIVATE repo already added"
+      else
+        echo "INFO: Adding IoTech PRIVATE repo"
+        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+      fi
     else
-      echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/iotech.list ;then
+        echo "INFO: IoTech repo already added"
+      else
+        echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+      fi
     fi
 
     sudo apt-get update -qq
@@ -346,7 +396,7 @@ install_cli_rpm()
 # Main starts here:
 
 # If no options are specified
-if [ -z $1 ];then
+if [ -z $COMPONENT ];then
     display_usage
     exit 1
 fi
