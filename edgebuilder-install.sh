@@ -186,6 +186,7 @@ install_server()
     echo "ERROR: Server installation could not be validated"
   else
     echo "INFO: Server validation succeeded"
+    edgebuilder-server
   fi
 }
 
@@ -292,6 +293,7 @@ install_node()
     echo "ERROR: Node installation could not be validated"
   else
     echo "INFO: Node validation succeeded"
+    edgebuilder-node
   fi
 }
 
