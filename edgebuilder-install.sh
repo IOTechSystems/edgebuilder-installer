@@ -186,7 +186,7 @@ install_server()
     echo "ERROR: Server installation could not be validated"
   else
     echo "INFO: Server validation succeeded"
-    echo $OUTPUT
+    edgebuilder-server
   fi
 }
 
@@ -293,7 +293,7 @@ install_node()
     echo "ERROR: Node installation could not be validated"
   else
     echo "INFO: Node validation succeeded"
-    echo $OUTPUT
+    edgebuilder-node
   fi
 }
 
@@ -353,7 +353,7 @@ install_cli_deb()
     echo "ERROR: CLI installation could not be validated"
   else
     echo "INFO: CLI validation succeeded"
-    echo $OUTPUT
+    edgebuilder-cli
   fi
 }
 
@@ -393,7 +393,7 @@ install_cli_rpm()
     echo "ERROR: CLI installation could not be validated"
   else
     echo "INFO: CLI validation succeeded"
-    echo $OUTPUT
+    edgebuilder-cli
   fi
 }
 
