@@ -1,19 +1,10 @@
 #!/bin/sh
 COMPONENT=$1
-if [ "$1" != "" ];then
-  shift
-fi
+shift
 
 FILE=""
 REPOAUTH=""
 VER="1.2.0.dev"
-
-# Displays simple usage prompt
-display_usage()
-{
-  echo "Usage: edgebuilder-install.sh [param]"
-  echo "params: server, node, cli"
-}
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -70,6 +61,13 @@ version_under_2_6_23(){
         print 1;
       }
     }')
+}
+
+# Displays simple usage prompt
+display_usage()
+{
+  echo "Usage: edgebuilder-install.sh [param]"
+  echo "params: server, node, cli"
 }
 
 # Gets the distribution 'name' bionic, focal etc
@@ -188,7 +186,6 @@ install_server()
     echo "ERROR: Server installation could not be validated"
   else
     echo "INFO: Server validation succeeded"
-    edgebuilder-server
   fi
 }
 
@@ -295,7 +292,6 @@ install_node()
     echo "ERROR: Node installation could not be validated"
   else
     echo "INFO: Node validation succeeded"
-    edgebuilder-node
   fi
 }
 
@@ -350,12 +346,11 @@ install_cli_deb()
   fi
 
   echo "INFO: Validating installation"
-  OUTPUT=$(edgebuilder-cli)
+  OUTPUT=$(edgebuilder-cli -v)
   if [ "$OUTPUT" = "" ]; then
     echo "ERROR: CLI installation could not be validated"
   else
     echo "INFO: CLI validation succeeded"
-    edgebuilder-cli
   fi
 }
 
@@ -390,12 +385,11 @@ install_cli_rpm()
   "$PKG_MNGR" install -y edgebuilder-cli-"$VER"*
 
   echo "INFO: Validating installation"
-  OUTPUT=$(edgebuilder-cli)
+  OUTPUT=$(edgebuilder-cli -v)
   if [ "$OUTPUT" = "" ]; then
     echo "ERROR: CLI installation could not be validated"
   else
     echo "INFO: CLI validation succeeded"
-    edgebuilder-cli
   fi
 }
 
