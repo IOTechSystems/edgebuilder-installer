@@ -197,13 +197,6 @@ install_node()
     fi
   fi
 
-  # shellcheck disable=SC2062
-  if dpkg -l | grep -qw docker-ce ;then
-    if dpkg -s docker-ce | grep -qw Status.*installed ;then
-      echo  "ERROR: docker-ce is installed, please uninstall before continuing"
-      exit 1
-    fi
-  fi
 
   apt-get update -qq
   apt-get install -y -qq wget
