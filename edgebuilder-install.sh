@@ -8,6 +8,9 @@ FILE=""
 REPOAUTH=""
 VER="1.2.0.dev"
 
+# Error message prefix ( Controller relies on this to crete events )
+NODE_ERROR_PREFIX="NODE ERROR:"
+
 # Displays simple usage prompt
 display_usage()
 {
@@ -211,7 +214,7 @@ install_node()
   # shellcheck disable=SC2062
   if dpkg -l | grep -qw docker-ce ;then
     if dpkg -s docker-ce | grep -qw Status.*installed ;then
-      echo  "ERROR: docker-ce is installed, please uninstall before continuing"
+      echo  "$NODE_ERROR_PREFIX docker-ce is installed, please uninstall before continuing"
       exit 1
     fi
   fi
@@ -292,7 +295,7 @@ install_node()
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-node)
   if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: Node installation could not be validated"
+    echo "$NODE_ERROR_PREFIX Node installation could not be validated"
   else
     echo "INFO: Node validation succeeded"
     edgebuilder-node
@@ -452,18 +455,18 @@ elif [ "$COMPONENT" = "node" ]; then
     if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN10" ];then
       install_node "$OS" "$ARCH"
     else
-      echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
+      echo "$NODE_ERROR_PREFIX The Edge Builder node components are not supported on $OS - $ARCH"
       exit 1
     fi
   elif [ "$ARCH" = "armv7l" ];then
     if [ "$OS" = "$RASPBIAN10" ]; then
       install_node "$OS" "$ARCH"
     else
-      echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
+      echo "$NODE_ERROR_PREFIX The Edge Builder node components are not supported on $OS - $ARCH"
       exit 1
     fi
   else
-    echo "ERROR: The Edge Builder node components are not supported on $ARCH"
+    echo "$NODE_ERROR_PREFIX The Edge Builder node components are not supported on $ARCH"
     exit 1
   fi
 elif [ "$COMPONENT" = "cli" ]; then
