@@ -211,6 +211,9 @@ install_node()
     fi
   fi
 
+  echo  "$NODE_ERROR_PREFIX docker-ce is installed, please uninstall before continuing"
+  exit 1
+
   # shellcheck disable=SC2062
   if dpkg -l | grep -qw docker-ce ;then
     if dpkg -s docker-ce | grep -qw Status.*installed ;then
