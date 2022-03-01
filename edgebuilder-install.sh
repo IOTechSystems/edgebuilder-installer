@@ -1,22 +1,11 @@
 #!/bin/sh
 COMPONENT=$1
-if [ "$1" != "" ];then
-  shift
-fi
+shift
 
 FILE=""
 REPOAUTH=""
-VER="1.2.0.dev"
-
-# Error message prefix ( Controller relies on this to crete events )
 NODE_ERROR_PREFIX="NODE ERROR:"
-
-# Displays simple usage prompt
-display_usage()
-{
-  echo "Usage: edgebuilder-install.sh [param]"
-  echo "params: server, node, cli"
-}
+VER="2.0.0.dev"
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -75,6 +64,13 @@ version_under_2_6_23(){
     }')
 }
 
+# Displays simple usage prompt
+display_usage()
+{
+  echo "Usage: edgebuilder-install.sh [param]"
+  echo "params: server, node, cli"
+}
+
 # Gets the distribution 'name' bionic, focal etc
 get_dist_name()
 {
@@ -126,14 +122,6 @@ install_server()
       PKG_VER=$(dpkg -s edgebuilder-server | grep -i version)
       echo "INFO: Server ($PKG_VER) already installed, exiting"
       exit 0
-    fi
-  fi
-
-  if dpkg -l | grep -qw docker-ce ;then
-    # shellcheck disable=SC2062
-    if dpkg -s docker-ce | grep -qw Status.*installed ;then
-      echo  "ERROR: docker-ce is installed, please uninstall before continuing"
-      exit 1
     fi
   fi
 
@@ -191,7 +179,6 @@ install_server()
     echo "ERROR: Server installation could not be validated"
   else
     echo "INFO: Server validation succeeded"
-    edgebuilder-server
   fi
 }
 
@@ -208,17 +195,6 @@ install_node()
       PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
       echo "INFO: Node Components ($PKG_VER) already installed, exiting"
       exit 0
-    fi
-  fi
-
-  echo  "$NODE_ERROR_PREFIX docker-ce is installed, please uninstall before continuing"
-  exit 1
-
-  # shellcheck disable=SC2062
-  if dpkg -l | grep -qw docker-ce ;then
-    if dpkg -s docker-ce | grep -qw Status.*installed ;then
-      echo  "$NODE_ERROR_PREFIX docker-ce is installed, please uninstall before continuing"
-      exit 1
     fi
   fi
 
@@ -301,7 +277,6 @@ install_node()
     echo "$NODE_ERROR_PREFIX Node installation could not be validated"
   else
     echo "INFO: Node validation succeeded"
-    edgebuilder-node
   fi
 }
 
@@ -356,12 +331,11 @@ install_cli_deb()
   fi
 
   echo "INFO: Validating installation"
-  OUTPUT=$(edgebuilder-cli)
+  OUTPUT=$(edgebuilder-cli -v)
   if [ "$OUTPUT" = "" ]; then
     echo "ERROR: CLI installation could not be validated"
   else
     echo "INFO: CLI validation succeeded"
-    edgebuilder-cli
   fi
 }
 
@@ -396,12 +370,11 @@ install_cli_rpm()
   "$PKG_MNGR" install -y edgebuilder-cli-"$VER"*
 
   echo "INFO: Validating installation"
-  OUTPUT=$(edgebuilder-cli)
+  OUTPUT=$(edgebuilder-cli -v)
   if [ "$OUTPUT" = "" ]; then
     echo "ERROR: CLI installation could not be validated"
   else
     echo "INFO: CLI validation succeeded"
-    edgebuilder-cli
   fi
 }
 
