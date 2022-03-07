@@ -426,7 +426,8 @@ if [ "$COMPONENT" = "server" ];then
     exit 1
   fi
 elif [ "$COMPONENT" = "node" ]; then
-
+      echo "$NODE_ERROR_PREFIX The Edge Builder node components are not supported on $OS - $ARCH"
+      exit 1
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ];then
     if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN10" ];then
       install_node "$OS" "$ARCH"
