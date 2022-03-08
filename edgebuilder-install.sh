@@ -426,24 +426,24 @@ if [ "$COMPONENT" = "server" ];then
     exit 1
   fi
 elif [ "$COMPONENT" = "node" ]; then
-      echo "$NODE_ERROR_PREFIX The Edge Builder node components are not supported on $OS - $ARCH"
+      echo "The Edge Builder node components are not supported on $OS - $ARCH"
       exit 1
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ];then
     if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN10" ];then
       install_node "$OS" "$ARCH"
     else
-      echo "$NODE_ERROR_PREFIX The Edge Builder node components are not supported on $OS - $ARCH"
+      echo "The Edge Builder node components are not supported on $OS - $ARCH"
       exit 1
     fi
   elif [ "$ARCH" = "armv7l" ];then
     if [ "$OS" = "$RASPBIAN10" ]; then
       install_node "$OS" "$ARCH"
     else
-      echo "$NODE_ERROR_PREFIX The Edge Builder node components are not supported on $OS - $ARCH"
+      echo "The Edge Builder node components are not supported on $OS - $ARCH"
       exit 1
     fi
   else
-    echo "$NODE_ERROR_PREFIX The Edge Builder node components are not supported on $ARCH"
+    echo "The Edge Builder node components are not supported on $ARCH"
     exit 1
   fi
 elif [ "$COMPONENT" = "cli" ]; then
