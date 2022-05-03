@@ -207,24 +207,26 @@ install_node()
   DIST_TYPE=$(get_dist_type "$DIST")
 
   if [ "$ARCH" = "x86_64" ];then
-    wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3003/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
-    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3003 $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
+    wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3004/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
+    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3004 $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
       echo "INFO: Salt repo already added"
     else
-      echo "deb [arch=amd64] http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3003 $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
+      echo "deb [arch=amd64] http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3004 $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
     fi
 
   elif [ "$ARCH" = "aarch64" ];then
-    wget -q "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3003/salt-common_3003%2Bds-1_all.deb" & wget -q "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3003/salt-minion_3003%2Bds-1_all.deb"
-    apt-get install -y -qq ./*.deb
-    rm salt-common_3003+ds-1_all.deb salt-minion_3003+ds-1_all.deb
-
-  elif [ "$ARCH" = "armv7l" ];then
-    wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/3003/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
-    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/3003 $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
+    wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/arm64/3004/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
+    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/arm64/3004 $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
       echo "INFO: Salt repo already added"
     else
-      echo "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/3003 $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
+      echo "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/arm64/3004 $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
+    fi
+  elif [ "$ARCH" = "armv7l" ];then
+    wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/3004/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
+    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/3004 $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
+      echo "INFO: Salt repo already added"
+    else
+      echo "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/3004 $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
     fi
   fi
 
