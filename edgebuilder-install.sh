@@ -137,17 +137,17 @@ install_server()
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     DIST_NAME=$(get_dist_name "$DIST")
     if [ "$REPOAUTH" != "" ]; then
-      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
+      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "INFO: IoTech PRIVATE repo already added"
       else
         echo "INFO: Adding IoTech PRIVATE repo"
-        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     else
-      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
+      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "INFO: IoTech repo already added"
       else
-        echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+        echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     fi
 
@@ -208,25 +208,25 @@ install_node()
 
   if [ "$ARCH" = "x86_64" ];then
     wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3004/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
-    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3004 $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
+    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3004 $DIST_NAME main" /etc/apt/sources.list.d/eb-saltstack.list ;then
       echo "INFO: Salt repo already added"
     else
-      echo "deb [arch=amd64] http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3004 $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
+      echo "deb [arch=amd64] http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3004 $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-saltstack.list
     fi
 
   elif [ "$ARCH" = "aarch64" ];then
     wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/arm64/3004/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
-    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/arm64/3004 $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
+    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/arm64/3004 $DIST_NAME main" /etc/apt/sources.list.d/eb-saltstack.list ;then
       echo "INFO: Salt repo already added"
     else
-      echo "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/arm64/3004 $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
+      echo "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/arm64/3004 $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-saltstack.list
     fi
   elif [ "$ARCH" = "armv7l" ];then
     wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/3004/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
-    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/3004 $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
+    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/3004 $DIST_NAME main" /etc/apt/sources.list.d/eb-saltstack.list ;then
       echo "INFO: Salt repo already added"
     else
-      echo "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/3004 $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
+      echo "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/3004 $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-saltstack.list
     fi
   fi
 
@@ -239,17 +239,17 @@ install_node()
   else
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     if [ "$REPOAUTH" != "" ]; then
-      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
+      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "INFO: IoTech PRIVATE repo already added"
       else
         echo "INFO: Adding IoTech PRIVATE repo"
-        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     else
-      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
+      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "INFO: IoTech repo already added"
       else
-        echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+        echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     fi
     apt-get update -qq
@@ -314,17 +314,17 @@ install_cli_deb()
     echo "INFO: Setting up apt"
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     if [ "$REPOAUTH" != "" ]; then
-      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" /etc/apt/sources.list.d/iotech.list ;then
+      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "INFO: IoTech PRIVATE repo already added"
       else
         echo "INFO: Adding IoTech PRIVATE repo"
-        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     else
-      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/iotech.list ;then
+      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "INFO: IoTech repo already added"
       else
-        echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+        echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     fi
 
