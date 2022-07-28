@@ -342,7 +342,7 @@ install_cli_deb()
     fi
 
     sudo apt-get update -qq
-    sudo apt-get install -y -qq edgebuilder-cli="$VER"
+    sudo apt-get install -y -qq sshpass edgebuilder-cli="$VER"
   fi
 
   echo "INFO: Validating installation"
@@ -382,7 +382,7 @@ install_cli_rpm()
   fi
 
   echo "INFO: Installing"
-  "$PKG_MNGR" install -y edgebuilder-cli-"$VER"*
+  "$PKG_MNGR" install -y sshpass edgebuilder-cli-"$VER"*
 
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-cli -v)
