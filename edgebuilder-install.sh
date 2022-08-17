@@ -4,7 +4,7 @@ shift
 
 FILE=""
 REPOAUTH=""
-VER="2.0.0.dev"
+VER="2.1.0.dev"
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -27,10 +27,12 @@ while [ "$1" != "" ]; do
     esac
 done
 
+UBUNTU2204="Ubuntu 22.04"
 UBUNTU2104="Ubuntu 21.04"
 UBUNTU2004="Ubuntu 20.04"
 UBUNTU1804="Ubuntu 18.04"
 DEBIAN10="Debian GNU/Linux 10"
+DEBIAN11="Debian GNU/Linux 11"
 RASPBIAN10="Raspbian GNU/Linux 10"
 
 RPM_REPO_DATA='[IoTech]
@@ -73,12 +75,17 @@ display_usage()
 # Gets the distribution 'name' bionic, focal etc
 get_dist_name()
 {
-  if [ "$1" = "$UBUNTU2104" ]; then
+
+  if [ "$1" = "$UBUNTU2204" ]; then
+    echo "jammy"
+  elif [ "$1" = "$UBUNTU2104" ]; then
     echo "hirsute"
   elif [ "$1" = "$UBUNTU2004" ]; then
     echo "focal"
   elif  [ "$1" = "$UBUNTU1804" ]; then
     echo "bionic"
+  elif  [ "$1" = "$DEBIAN11" ]; then
+      echo "bullseye"
   elif  [ "$1" = "$DEBIAN10" ] || [ "$1" = "$RASPBIAN10" ]; then
     echo "buster"
   fi
@@ -87,12 +94,16 @@ get_dist_name()
 # Gets the distribution number 20.04, 18.04 etc
 get_dist_num()
 {
-  if [ "$1" = "$UBUNTU2104" ]; then
+  if [ "$1" = "$UBUNTU2204" ]; then
+    echo "22.04"
+  elif [ "$1" = "$UBUNTU2104" ]; then
     echo "21.04"
   elif [ "$1" = "$UBUNTU2004" ]; then
     echo "20.04"
   elif  [ "$1" = "$UBUNTU1804" ]; then
     echo "18.04"
+  elif  [ "$1" = "$DEBIAN11" ]; then
+    echo "11"
   elif  [ "$1" = "$DEBIAN10" ] || [ "$1" = "$RASPBIAN10" ]; then
     echo "10"
   fi
@@ -101,12 +112,24 @@ get_dist_num()
 # Gets the basic distribution type ubuntu, debian etc
 get_dist_type()
 {
-  if [ "$1" = "$UBUNTU2104" ] || [ "$1" = "$UBUNTU2004" ] || [ "$1" = "$UBUNTU1804" ]; then
+  if [ "$1" = "$UBUNTU2204" ] || [ "$1" = "$UBUNTU2104" ] || [ "$1" = "$UBUNTU2004" ] || [ "$1" = "$UBUNTU1804" ]; then
     echo "ubuntu"
-  elif  [ "$1" = "$DEBIAN10" ] || [ "$1" = "$RASPBIAN10" ]; then
+  elif  [ "$1" = "$DEBIAN11" ] || [ "$1" = "$DEBIAN10" ] || [ "$1" = "$RASPBIAN10" ]; then
     echo "debian"
   fi
 
+}
+
+# Get the dist mapping for salt repos
+get_dist_arch()
+{
+  if [ "$1" = "x86_64" ]; then
+    echo "amd64"
+  elif [ "$1" = "aarch64" ]; then
+    echo "arm64"
+  elif [ "$1" = "armv7l" ]; then
+      echo "armhf"
+  fi
 }
 
 # Installs the server components
@@ -137,17 +160,17 @@ install_server()
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     DIST_NAME=$(get_dist_name "$DIST")
     if [ "$REPOAUTH" != "" ]; then
-      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
+      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "INFO: IoTech PRIVATE repo already added"
       else
         echo "INFO: Adding IoTech PRIVATE repo"
-        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     else
-      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
+      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "INFO: IoTech repo already added"
       else
-        echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+        echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     fi
 
@@ -205,30 +228,17 @@ install_node()
   DIST_NAME=$(get_dist_name "$DIST")
   DIST_NUM=$(get_dist_num "$DIST")
   DIST_TYPE=$(get_dist_type "$DIST")
+  DIST_ARCH=$(get_dist_arch "$ARCH")
 
-  if [ "$ARCH" = "x86_64" ];then
-    wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3004/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
-    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3004 $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
-      echo "INFO: Salt repo already added"
-    else
-      echo "deb [arch=amd64] http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/amd64/3004 $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
-    fi
-
-  elif [ "$ARCH" = "aarch64" ];then
-    wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/arm64/3004/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
-    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/arm64/3004 $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
-      echo "INFO: Salt repo already added"
-    else
-      echo "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/arm64/3004 $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
-    fi
-  elif [ "$ARCH" = "armv7l" ];then
-    wget -q -O - "https://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/3004/SALTSTACK-GPG-KEY.pub" | sudo apt-key add -
-    if grep -q "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/3004 $DIST_NAME main" /etc/apt/sources.list.d/saltstack.list ;then
-      echo "INFO: Salt repo already added"
-    else
-      echo "deb http://repo.saltstack.com/py3/$DIST_TYPE/$DIST_NUM/armhf/3004 $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/saltstack.list
-    fi
+  if grep -q "deb [signed-by=/usr/share/keyrings/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/3004 $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
+     echo "INFO: Salt repo already added"
+  else
+     # Download key
+     sudo curl -fsSL -o /usr/share/keyrings/salt-archive-keyring.gpg https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/3004/salt-archive-keyring.gpg
+     # Create apt sources list file
+     echo "deb [signed-by=/usr/share/keyrings/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/3004 $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/eb-salt.list
   fi
+
 
   # check if using local file for dev purposes
   echo "INFO: Installing"
@@ -239,17 +249,17 @@ install_node()
   else
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     if [ "$REPOAUTH" != "" ]; then
-      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
+      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "INFO: IoTech PRIVATE repo already added"
       else
         echo "INFO: Adding IoTech PRIVATE repo"
-        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     else
-      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/iotech.list ;then
+      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "INFO: IoTech repo already added"
       else
-        echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+        echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     fi
     apt-get update -qq
@@ -314,17 +324,17 @@ install_cli_deb()
     echo "INFO: Setting up apt"
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     if [ "$REPOAUTH" != "" ]; then
-      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" /etc/apt/sources.list.d/iotech.list ;then
+      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "INFO: IoTech PRIVATE repo already added"
       else
         echo "INFO: Adding IoTech PRIVATE repo"
-        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     else
-      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/iotech.list ;then
+      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "INFO: IoTech repo already added"
       else
-        echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/iotech.list
+        echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     fi
 
@@ -418,7 +428,7 @@ ARCH="$(uname -m)"
 echo "INFO: Checking compatibility"
 if [ "$COMPONENT" = "server" ];then
   if [ "$ARCH" = "x86_64" ];then
-    if [ "$OS" = "$UBUNTU2104" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN10" ];then
+    if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2104" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN10" ];then
       install_server "$OS"
     else
       echo "ERROR: The Edge Builder server components are not supported on $OS - $ARCH"
@@ -430,14 +440,14 @@ if [ "$COMPONENT" = "server" ];then
 elif [ "$COMPONENT" = "node" ]; then
 
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ];then
-    if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN10" ];then
+    if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN10" ];then
       install_node "$OS" "$ARCH"
     else
       echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
       exit 1
     fi
   elif [ "$ARCH" = "armv7l" ];then
-    if [ "$OS" = "$RASPBIAN10" ]; then
+    if [ "$OS" = "$RASPBIAN10" ] || [ "$OS" = "$DEBIAN11" ] || [ "$OS" = "$DEBIAN10" ]; then
       install_node "$OS" "$ARCH"
     else
       echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
