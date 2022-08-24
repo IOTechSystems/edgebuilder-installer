@@ -4,7 +4,7 @@ shift
 
 FILE=""
 REPOAUTH=""
-VER="2.0.0.dev"
+VER="2.0.0"
 
 while [ "$1" != "" ]; do
     case $1 in
