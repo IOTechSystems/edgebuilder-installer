@@ -27,7 +27,7 @@ while [ "$1" != "" ]; do
     esac
 done
 
-UBUNTU2104="Ubuntu 21.04"
+UBUNTU2204="Ubuntu 22.04"
 UBUNTU2004="Ubuntu 20.04"
 UBUNTU1804="Ubuntu 18.04"
 DEBIAN10="Debian GNU/Linux 10"
@@ -73,8 +73,8 @@ display_usage()
 # Gets the distribution 'name' bionic, focal etc
 get_dist_name()
 {
-  if [ "$1" = "$UBUNTU2104" ]; then
-    echo "hirsute"
+  if [ "$1" = "$UBUNTU2204" ]; then
+    echo "jammy"
   elif [ "$1" = "$UBUNTU2004" ]; then
     echo "focal"
   elif  [ "$1" = "$UBUNTU1804" ]; then
@@ -87,8 +87,8 @@ get_dist_name()
 # Gets the distribution number 20.04, 18.04 etc
 get_dist_num()
 {
-  if [ "$1" = "$UBUNTU2104" ]; then
-    echo "21.04"
+  if [ "$1" = "$UBUNTU2204" ]; then
+    echo "22.04"
   elif [ "$1" = "$UBUNTU2004" ]; then
     echo "20.04"
   elif  [ "$1" = "$UBUNTU1804" ]; then
@@ -101,7 +101,7 @@ get_dist_num()
 # Gets the basic distribution type ubuntu, debian etc
 get_dist_type()
 {
-  if [ "$1" = "$UBUNTU2104" ] || [ "$1" = "$UBUNTU2004" ] || [ "$1" = "$UBUNTU1804" ]; then
+  if [ "$1" = "$UBUNTU2204" ] || [ "$1" = "$UBUNTU2004" ] || [ "$1" = "$UBUNTU1804" ]; then
     echo "ubuntu"
   elif  [ "$1" = "$DEBIAN10" ] || [ "$1" = "$RASPBIAN10" ]; then
     echo "debian"
@@ -418,7 +418,7 @@ ARCH="$(uname -m)"
 echo "INFO: Checking compatibility"
 if [ "$COMPONENT" = "server" ];then
   if [ "$ARCH" = "x86_64" ];then
-    if [ "$OS" = "$UBUNTU2104" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN10" ];then
+    if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN10" ];then
       install_server "$OS"
     else
       echo "ERROR: The Edge Builder server components are not supported on $OS - $ARCH"
