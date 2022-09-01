@@ -232,7 +232,7 @@ install_node()
   echo "Checking dist..."
   echo $DIST_NAME
   if [ "$DIST_NAME" = "jammy" ]; then
-    apt-get install salt-minion
+    apt-get install salt-minion=3004\*
   else
     if grep -q "deb [signed-by=/usr/share/keyrings/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/3004 $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
        echo "INFO: Salt repo already added"
