@@ -229,6 +229,7 @@ install_node()
   echo "$DIST_NAME"
   LINK_PREFIX=""
   if [ "$DIST_NAME" = "jammy" ]; then
+    export DEBIAN_FRONTEND=noninteractive  # Note: this selects the default to avoid the user prompt, another way is to find the offending library and set its restart without asking flag in debconf-set-selections to 'true'
     LINK_PREFIX="https://repo.saltproject.io/salt/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_JAMMY_VER"
   else
     LINK_PREFIX="https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER"
