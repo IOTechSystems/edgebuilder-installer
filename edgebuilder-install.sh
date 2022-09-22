@@ -5,6 +5,8 @@ shift
 FILE=""
 REPOAUTH=""
 VER="2.1.0.dev"
+SALT_MINION_JAMMY_VER="3005"
+SALT_MINION_VER="3004"
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -224,18 +226,22 @@ install_node()
   DIST_TYPE=$(get_dist_type "$DIST")
   DIST_ARCH=$(get_dist_arch "$ARCH")
   echo "Checking dist..."
-  echo $DIST_NAME
+  echo "$DIST_NAME"
+  LINK_PREFIX=""
   if [ "$DIST_NAME" = "jammy" ]; then
-    apt-get install salt-minion=3004\*
+    export DEBIAN_FRONTEND=noninteractive  # Note: this selects the default to avoid the user prompt, another way is to find the offending library and set its restart without asking flag in debconf-set-selections to 'true'
+    LINK_PREFIX="https://repo.saltproject.io/salt/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_JAMMY_VER"
   else
-    if grep -q "deb [signed-by=/usr/share/keyrings/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/3004 $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
-       echo "INFO: Salt repo already added"
-    else
-       # Download key
-       sudo curl -fsSL -o /usr/share/keyrings/salt-archive-keyring.gpg https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/3004/salt-archive-keyring.gpg
-       # Create apt sources list file
-       echo "deb [signed-by=/usr/share/keyrings/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/3004 $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/eb-salt.list
-    fi
+    LINK_PREFIX="https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER"
+  fi
+
+  if grep -q "deb [signed-by=/usr/share/keyrings/salt-archive-keyring.gpg arch=$DIST_ARCH] $LINK_PREFIX $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
+     echo "INFO: Salt repo already added"
+  else
+     # Download key
+     sudo curl -fsSL -o /usr/share/keyrings/salt-archive-keyring.gpg "$LINK_PREFIX"/salt-archive-keyring.gpg
+     # Create apt sources list file
+     echo "deb [signed-by=/usr/share/keyrings/salt-archive-keyring.gpg arch=$DIST_ARCH] $LINK_PREFIX $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/eb-salt.list
   fi
 
   # check if using local file for dev purposes
