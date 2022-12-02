@@ -144,15 +144,28 @@ install_server()
   fi
 
   apt-get update -qq
-  apt-get install -y -qq wget
+  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
 
   # check if using local file for dev purposes
   echo "INFO: Installing"
+
+  echo "INFO: Setting up apt for Edge Builder"
+  DIST_NAME=$(get_dist_name "$DIST")
+  DIST_NUM=$(get_dist_num "$DIST")
+  DIST_TYPE=$(get_dist_type "$DIST")
+  DIST_ARCH=$(get_dist_arch "$ARCH")
+
+  # Add Docker's official GPG key
+  mkdir -p /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  echo "deb [arch=$DIST_ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+
   if test -f "$FILE" ; then
     apt-get update -qq
     apt-get install -y ./$FILE
   else
-    echo "INFO: Setting up apt"
+    echo "INFO: Setting up apt for Edge Builder"
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     DIST_NAME=$(get_dist_name "$DIST")
     if [ "$REPOAUTH" != "" ]; then
@@ -218,15 +231,16 @@ install_node()
 
 
   apt-get update -qq
-  apt-get install -y -qq wget
+  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
 
   echo "INFO: Setting up apt"
   DIST_NAME=$(get_dist_name "$DIST")
   DIST_NUM=$(get_dist_num "$DIST")
   DIST_TYPE=$(get_dist_type "$DIST")
   DIST_ARCH=$(get_dist_arch "$ARCH")
-  echo "Checking dist..."
+  echo "Setting up sources for salt..."
   echo "$DIST_NAME"
+
   LINK_PREFIX=""
   if [ "$DIST_NAME" = "jammy" ]; then
     export DEBIAN_FRONTEND=noninteractive  # Note: this selects the default to avoid the user prompt, another way is to find the offending library and set its restart without asking flag in debconf-set-selections to 'true'
@@ -243,6 +257,13 @@ install_node()
      # Create apt sources list file
      echo "deb [signed-by=/usr/share/keyrings/salt-archive-keyring.gpg arch=$DIST_ARCH] $LINK_PREFIX $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/eb-salt.list
   fi
+
+  echo "Setting up sources for docker..."
+  # Add Docker's official GPG key
+  mkdir -p /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  echo "deb [arch=$DIST_ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
 
   # check if using local file for dev purposes
   echo "INFO: Installing"
