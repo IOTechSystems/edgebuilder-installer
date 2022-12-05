@@ -155,11 +155,13 @@ install_server()
   DIST_TYPE=$(get_dist_type "$DIST")
   DIST_ARCH=$(get_dist_arch "$ARCH")
 
+  # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
+  # Uninstall old versions of docker
+  apt-get remove -y -q docker docker-engine docker.io containerd runc # (TODO: Is this ok?)
   # Add Docker's official GPG key
   mkdir -p /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-  echo "deb [arch=$DIST_ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
+  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  echo "deb [arch=$DIST_ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
   if test -f "$FILE" ; then
     apt-get update -qq
@@ -259,10 +261,13 @@ install_node()
   fi
 
   echo "Setting up sources for docker..."
+  # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
+  # Uninstall old versions of docker
+  apt-get remove -y -q docker docker-engine docker.io containerd runc # (TODO: Is this ok?)
   # Add Docker's official GPG key
   mkdir -p /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-  echo "deb [arch=$DIST_ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  echo "deb [arch=$DIST_ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 
   # check if using local file for dev purposes
@@ -298,8 +303,10 @@ install_node()
     if grep -q "$USER     ALL=(ALL) NOPASSWD:ALL" /etc/sudoers ;then
       echo "User already in sudoers"
     else
+      echo "Adding user \"$USER\" to sudoers"
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
+    echo "Adding user \"$USER\" to docker group"
     usermod -aG docker $USER
   fi
   systemctl enable docker.service
