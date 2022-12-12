@@ -157,7 +157,9 @@ install_server()
 
   # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
   # Uninstall old versions of docker
-  apt-get remove -y -q docker docker-engine docker.io containerd runc # (TODO: Is this ok?)
+  for i in docker docker-engine docker.io containerd runc; do
+    apt-get remove -y $i  # Do not pause on missing packages
+  done
   # Add Docker's official GPG key
   mkdir -p /etc/apt/keyrings
   curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
@@ -263,7 +265,15 @@ install_node()
   echo "Setting up sources for docker..."
   # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
   # Uninstall old versions of docker
-  apt-get remove -y -q docker docker-engine docker.io containerd runc # (TODO: Is this ok?)
+  for i in docker docker-engine docker.io containerd runc; do
+    apt-get remove -y $i  # Do not pause on missing packages
+  done
+  # Remove any docker services
+  systemctl stop docker.service
+  systemctl disable docker.service
+  systemctl daemon-reload
+  systemctl reset-failed
+
   # Add Docker's official GPG key
   mkdir -p /etc/apt/keyrings
   curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
