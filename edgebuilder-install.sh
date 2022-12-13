@@ -188,7 +188,6 @@ install_server()
     apt-get install -qq -y edgebuilder-server="$VER"
   fi
 
-
   echo "INFO: Configuring user"
   USER=$(logname)
   if [ "$USER" != "root" ]; then
@@ -300,13 +299,11 @@ install_node()
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
     echo "Adding user \"$USER\" to docker group"
-    usermod -aG docker $USER
+    usermod -aG docker "$USER"
   fi
   systemctl enable docker.service
 
   systemctl is-active --quiet docker.service || systemctl start docker.service
-
-  echo "INFO: Node installation complete"
 
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-node)
