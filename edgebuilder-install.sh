@@ -5,8 +5,7 @@ shift
 FILE=""
 REPOAUTH=""
 VER="2.1.0.dev"
-SALT_MINION_JAMMY_VER="3005"
-SALT_MINION_VER="3004"
+SALT_MINION_VER="3005"
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -204,8 +203,6 @@ install_server()
 
   systemctl is-active --quiet docker.service || systemctl start docker.service
 
-  echo "INFO: Server installation complete"
-
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-server)
   if [ "$OUTPUT" = "" ]; then
@@ -243,21 +240,17 @@ install_node()
   echo "Setting up sources for salt..."
   echo "$DIST_NAME"
 
-  LINK_PREFIX=""
   if [ "$DIST_NAME" = "jammy" ]; then
     export DEBIAN_FRONTEND=noninteractive  # Note: this selects the default to avoid the user prompt, another way is to find the offending library and set its restart without asking flag in debconf-set-selections to 'true'
-    LINK_PREFIX="https://repo.saltproject.io/salt/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_JAMMY_VER"
-  else
-    LINK_PREFIX="https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER"
   fi
 
-  if grep -q "deb [signed-by=/usr/share/keyrings/salt-archive-keyring.gpg arch=$DIST_ARCH] $LINK_PREFIX $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
+  if grep -q "deb [signed-by=/etc/apt/keyrings/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/salt/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
      echo "INFO: Salt repo already added"
   else
      # Download key
-     sudo curl -fsSL -o /usr/share/keyrings/salt-archive-keyring.gpg "$LINK_PREFIX"/salt-archive-keyring.gpg
+     sudo curl -fsSL -o /etc/apt/keyrings/salt-archive-keyring.gpg https://repo.saltproject.io/salt/py3/"$DIST_TYPE"/"$DIST_NUM"/"$DIST_ARCH"/$SALT_MINION_VER/salt-archive-keyring.gpg
      # Create apt sources list file
-     echo "deb [signed-by=/usr/share/keyrings/salt-archive-keyring.gpg arch=$DIST_ARCH] $LINK_PREFIX $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/eb-salt.list
+     echo "deb [signed-by=/etc/apt/keyrings/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/salt/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/eb-salt.list
   fi
 
   echo "Setting up sources for docker..."
