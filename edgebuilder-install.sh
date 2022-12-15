@@ -261,7 +261,6 @@ install_node()
   # Uninstall old versions of docker
   apt-get remove -y -q docker docker-engine docker.io containerd runc # (TODO: Is this ok?)
   # Add Docker's official GPG key
-
   curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor -o "$KEY_DIR"/docker.gpg
   echo "deb [arch=$DIST_ARCH signed-by=$KEY_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
