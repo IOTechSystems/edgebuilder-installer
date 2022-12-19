@@ -261,12 +261,21 @@ install_node()
   echo "Setting up sources for docker..."
   # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
   # Uninstall old versions of docker
+  # Check if the docker.service and/or docker.socket are running
+  if [ "$(systemctl is-enabled docker.service)" = "enabled" ]; then
+     echo "WARN: docker.service is enabled, disabling..."
+     systemctl disable docker.service
+  fi
+
+  if [ "$(systemctl is-enabled docker.socket)" = "enabled" ]; then
+    echo "WARN: docker.socket is enabled, disabling..."
+    systemctl disable docker.socket
+  fi
   for i in docker docker-engine docker.io containerd runc; do
+    echo "INFO: Attempting to remove $i"
     apt-get remove -y $i  # Do not pause on missing packages
   done
-  # Remove any docker services
-  systemctl stop docker.service
-  systemctl disable docker.service
+  # Refresh systemctl services
   systemctl daemon-reload
   systemctl reset-failed
 
@@ -313,9 +322,13 @@ install_node()
     echo "Adding user \"$USER\" to docker group"
     usermod -aG docker "$USER"
   fi
-  systemctl enable docker.service
 
+  # start docker services
+  echo "INFO: Enabling docker services..."
+  systemctl enable docker.service
+  systemctl enable docker.socket
   systemctl is-active --quiet docker.service || systemctl start docker.service
+  systemctl is-active --quiet docker.socket || systemctl start docker.socket
 
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-node)
