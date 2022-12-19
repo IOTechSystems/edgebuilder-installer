@@ -5,8 +5,7 @@ shift
 FILE=""
 REPOAUTH=""
 VER="2.1.0.dev"
-SALT_MINION_JAMMY_VER="3005"
-SALT_MINION_VER="3004"
+SALT_MINION_VER="3005"
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -191,7 +190,6 @@ install_server()
     apt-get install -qq -y edgebuilder-server="$VER"
   fi
 
-
   echo "INFO: Configuring user"
   USER=$(logname)
   if [ "$USER" != "root" ]; then
@@ -205,8 +203,6 @@ install_server()
   systemctl enable docker.service
 
   systemctl is-active --quiet docker.service || systemctl start docker.service
-
-  echo "INFO: Server installation complete"
 
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-server)
@@ -245,21 +241,21 @@ install_node()
   echo "Setting up sources for salt..."
   echo "$DIST_NAME"
 
-  LINK_PREFIX=""
   if [ "$DIST_NAME" = "jammy" ]; then
     export DEBIAN_FRONTEND=noninteractive  # Note: this selects the default to avoid the user prompt, another way is to find the offending library and set its restart without asking flag in debconf-set-selections to 'true'
-    LINK_PREFIX="https://repo.saltproject.io/salt/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_JAMMY_VER"
-  else
-    LINK_PREFIX="https://repo.saltproject.io/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER"
   fi
 
-  if grep -q "deb [signed-by=/usr/share/keyrings/salt-archive-keyring.gpg arch=$DIST_ARCH] $LINK_PREFIX $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
+  KEY_DIR="/etc/apt/keyrings"
+  if [ ! -d "$KEY_DIR" ]; then
+     mkdir -p /etc/apt/keyrings
+  fi
+  if grep -q "deb [signed-by=$KEY_DIR/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/salt/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
      echo "INFO: Salt repo already added"
   else
      # Download key
-     sudo curl -fsSL -o /usr/share/keyrings/salt-archive-keyring.gpg "$LINK_PREFIX"/salt-archive-keyring.gpg
+     sudo curl -fsSL -o "$KEY_DIR"/salt-archive-keyring.gpg https://repo.saltproject.io/salt/py3/"$DIST_TYPE"/"$DIST_NUM"/"$DIST_ARCH"/$SALT_MINION_VER/salt-archive-keyring.gpg
      # Create apt sources list file
-     echo "deb [signed-by=/usr/share/keyrings/salt-archive-keyring.gpg arch=$DIST_ARCH] $LINK_PREFIX $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/eb-salt.list
+     echo "deb [signed-by=$KEY_DIR/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/salt/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/eb-salt.list
   fi
 
   echo "Setting up sources for docker..."
@@ -275,10 +271,8 @@ install_node()
   systemctl reset-failed
 
   # Add Docker's official GPG key
-  mkdir -p /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-  echo "deb [arch=$DIST_ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
+  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor -o "$KEY_DIR"/docker.gpg
+  echo "deb [arch=$DIST_ARCH signed-by=$KEY_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
   # check if using local file for dev purposes
   echo "INFO: Installing"
@@ -317,13 +311,11 @@ install_node()
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
     echo "Adding user \"$USER\" to docker group"
-    usermod -aG docker $USER
+    usermod -aG docker "$USER"
   fi
   systemctl enable docker.service
 
   systemctl is-active --quiet docker.service || systemctl start docker.service
-
-  echo "INFO: Node installation complete"
 
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-node)
