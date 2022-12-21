@@ -155,10 +155,23 @@ install_server()
   DIST_ARCH=$(get_dist_arch "$ARCH")
 
   # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
-  # Uninstall old versions of docker
+  # Check if the docker.service and/or docker.socket are running
+  if [ "$(systemctl is-enabled docker.service)" = "enabled" ]; then
+     echo "WARN: docker.service is enabled, disabling..."
+     systemctl disable docker.service
+  fi
+
+  if [ "$(systemctl is-enabled docker.socket)" = "enabled" ]; then
+    echo "WARN: docker.socket is enabled, disabling..."
+    systemctl disable docker.socket
+  fi
   for i in docker docker-engine docker.io containerd runc; do
+    echo "INFO: Attempting to remove $i"
     apt-get remove -y $i  # Do not pause on missing packages
   done
+  # Refresh systemctl services
+  systemctl daemon-reload
+  systemctl reset-failed
   # Add Docker's official GPG key
   mkdir -p /etc/apt/keyrings
   curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
@@ -200,9 +213,13 @@ install_server()
     fi
     usermod -aG docker "$USER"
   fi
-  systemctl enable docker.service
 
+  # start docker services
+  echo "INFO: Enabling docker services..."
+  systemctl enable docker.service
+  systemctl enable docker.socket
   systemctl is-active --quiet docker.service || systemctl start docker.service
+  systemctl is-active --quiet docker.socket || systemctl start docker.socket
 
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-server)
