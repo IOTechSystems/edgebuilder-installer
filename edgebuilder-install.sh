@@ -155,11 +155,14 @@ install_server()
   DIST_ARCH=$(get_dist_arch "$ARCH")
 
   # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
-  # Remove any previous non docker-ce installs ( FIXME : This does not work for Ubuntu22.04. For Ubuntu22.04 if docker.io was installed, the user needs to disable docker.socket and docker.service and reboot before running the installer)
+  # Remove any previous non docker-ce installs ( FIXME : This does not work for Ubuntu22.04. For Ubuntu22.04 if docker.io was installed, the user needs to uninstall docker.io and reboot before running the installer)
   # Check if the docker.service and/or docker.socket are running
   if [ "$(systemctl is-enabled docker.service)" = "enabled" ]; then
      echo "WARN: docker.service is enabled, disabling..."
      systemctl disable docker.service
+     if [ "$DIST_NAME" = "jammy" ]; then
+        echo "WARN: Installation might fail due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder"
+     fi
   fi
 
   if [ "$(systemctl is-enabled docker.socket)" = "enabled" ]; then
@@ -278,11 +281,14 @@ install_node()
 
   echo "Setting up sources for docker..."
   # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
-  # Remove any previous non docker-ce installs ( FIXME : This does not work for Ubuntu22.04. For Ubuntu22.04 if docker.io was installed, the user needs to disable docker.socket and docker.service and reboot before running the installer)
+  # Remove any previous non docker-ce installs ( FIXME : This does not work for Ubuntu22.04. For Ubuntu22.04 if docker.io was installed, the user needs to uninstall docker.io and reboot before running the installer)
   # Check if the docker.service and/or docker.socket are running
   if [ "$(systemctl is-enabled docker.service)" = "enabled" ]; then
      echo "WARN: docker.service is enabled, disabling..."
      systemctl disable docker.service
+     if [ "$DIST_NAME" = "jammy" ]; then
+       echo "WARN: Installation might fail due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder"
+     fi
   fi
 
   if [ "$(systemctl is-enabled docker.socket)" = "enabled" ]; then
