@@ -161,7 +161,8 @@ install_server()
      echo "WARN: docker.service is enabled, disabling..."
      systemctl disable docker.service
      if [ "$DIST_NAME" = "jammy" ]; then
-        echo "WARN: Installation might fail due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder"
+        echo "ERROR: Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder"
+        exit 1
      fi
   fi
 
@@ -287,7 +288,8 @@ install_node()
      echo "WARN: docker.service is enabled, disabling..."
      systemctl disable docker.service
      if [ "$DIST_NAME" = "jammy" ]; then
-       echo "WARN: Installation might fail due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder"
+       echo "ERROR: Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder"
+       exit 1
      fi
   fi
 
