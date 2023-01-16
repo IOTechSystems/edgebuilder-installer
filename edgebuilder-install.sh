@@ -4,7 +4,7 @@ shift
 
 FILE=""
 REPOAUTH=""
-VER="2.1.0.dev"
+VER="2.2.0.dev"
 SALT_MINION_VER="3005"
 
 while [ "$1" != "" ]; do
