@@ -179,7 +179,7 @@ install_server()
   systemctl reset-failed
   # Add Docker's official GPG key
   mkdir -p /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
   echo "deb [arch=$DIST_ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
   if test -f "$FILE" ; then
@@ -306,7 +306,7 @@ install_node()
   systemctl reset-failed
 
   # Add Docker's official GPG key
-  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor -o "$KEY_DIR"/docker.gpg
+  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o "$KEY_DIR"/docker.gpg
   echo "deb [arch=$DIST_ARCH signed-by=$KEY_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
   # check if using local file for dev purposes
@@ -397,17 +397,17 @@ install_cli_deb()
     echo "INFO: Setting up apt"
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     if [ "$REPOAUTH" != "" ]; then
-      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" /etc/apt/sources.list.d/eb-iotech.list ;then
+      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" /etc/apt/sources.list.d/eb-iotech-cli.list ;then
         echo "INFO: IoTech PRIVATE repo already added"
       else
         echo "INFO: Adding IoTech PRIVATE repo"
-        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
+        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech-cli.list
       fi
     else
-      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/eb-iotech.list ;then
+      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/eb-iotech-cli.list ;then
         echo "INFO: IoTech repo already added"
       else
-        echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
+        echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech-cli.list
       fi
     fi
 
@@ -445,10 +445,10 @@ install_cli_rpm()
   fi
 
   echo "INFO: Setting up yum/dnf"
-  if grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/iotech.repo ;then
+  if grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/eb-iotech-cli.repo ;then
     echo "INFO: IoTech repo already added"
   else
-    echo "$RPM_REPO_DATA" | sudo tee -a /etc/yum.repos.d/iotech.repo
+    echo "$RPM_REPO_DATA" | sudo tee -a /etc/yum.repos.d/eb-iotech-cli.repo
   fi
 
   echo "INFO: Installing"
