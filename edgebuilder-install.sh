@@ -276,7 +276,7 @@ install_node()
   if [ ! -d "$KEY_DIR" ]; then
      mkdir -p /etc/apt/keyrings
   fi
-  if grep -q "deb [signed-by=$KEY_DIR/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/$SALT_REPO_PREFIX/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
+  if fgrep -q "deb [signed-by=$KEY_DIR/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/$SALT_REPO_PREFIX/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
      echo "INFO: Salt repo already added"
   else
      # Download key
