@@ -268,7 +268,7 @@ install_node()
     export DEBIAN_FRONTEND=noninteractive  # Note: this selects the default to avoid the user prompt, another way is to find the offending library and set its restart without asking flag in debconf-set-selections to 'true'
   fi
 
-  if [ "$DIST_ARCH" =~ "arm*" ]; then
+  if [ $DIST_ARCH = *"arm"* ]; then
     SALT_REPO_PREFIX="py3"
   fi
 
