@@ -268,7 +268,7 @@ install_node()
     export DEBIAN_FRONTEND=noninteractive  # Note: this selects the default to avoid the user prompt, another way is to find the offending library and set its restart without asking flag in debconf-set-selections to 'true'
   fi
 
-  if [ $DIST_ARCH = *"arm"* ]; then
+  if [ "$DIST_ARCH" = "arm64" ]||[ "$DIST_ARCH" = "armhf "]; then
     SALT_REPO_PREFIX="py3"
   fi
 
@@ -302,7 +302,7 @@ install_node()
     echo "WARN: docker.socket is enabled, disabling..."
     systemctl disable docker.socket
   fi
-  for i in docker docker-engine docker.io containerd runc; do
+  for i in docker docker-engine docker.io containerd runc docker-ce docker-ce-cli docker-compose-plugin; do
     echo "INFO: Attempting to remove $i"
     apt-get remove -y $i  # Do not pause on missing packages
   done
