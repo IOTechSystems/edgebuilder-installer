@@ -302,7 +302,7 @@ install_node()
     echo "WARN: docker.socket is enabled, disabling..."
     systemctl disable docker.socket
   fi
-  for i in docker docker-engine docker.io containerd runc docker-ce docker-ce-cli docker-compose-plugin; do
+  for i in docker docker-engine docker.io containerd runc docker-ce docker-ce-cli docker-compose-plugin docker-ce-rootless-extras; do
     echo "INFO: Attempting to remove $i"
     apt-get remove -y $i  # Do not pause on missing packages
   done
