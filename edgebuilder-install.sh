@@ -260,6 +260,7 @@ install_node()
   DIST_NUM=$(get_dist_num "$DIST")
   DIST_TYPE=$(get_dist_type "$DIST")
   DIST_ARCH=$(get_dist_arch "$ARCH")
+  SALT_REPO_PREFIX="salt/py3"
   echo "Setting up sources for salt..."
   echo "$DIST_NAME"
 
@@ -267,17 +268,21 @@ install_node()
     export DEBIAN_FRONTEND=noninteractive  # Note: this selects the default to avoid the user prompt, another way is to find the offending library and set its restart without asking flag in debconf-set-selections to 'true'
   fi
 
+  if [ "$DIST_ARCH" = "arm64" ]||[ "$DIST_ARCH" = "armhf "]; then
+    SALT_REPO_PREFIX="py3"
+  fi
+
   KEY_DIR="/etc/apt/keyrings"
   if [ ! -d "$KEY_DIR" ]; then
      mkdir -p /etc/apt/keyrings
   fi
-  if grep -q "deb [signed-by=$KEY_DIR/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/salt/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
+  if fgrep -q "deb [signed-by=$KEY_DIR/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/$SALT_REPO_PREFIX/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
      echo "INFO: Salt repo already added"
   else
      # Download key
-     sudo curl -fsSL -o "$KEY_DIR"/salt-archive-keyring.gpg https://repo.saltproject.io/salt/py3/"$DIST_TYPE"/"$DIST_NUM"/"$DIST_ARCH"/$SALT_MINION_VER/salt-archive-keyring.gpg
+     sudo curl -fsSL -o "$KEY_DIR"/salt-archive-keyring.gpg https://repo.saltproject.io/$SALT_REPO_PREFIX/"$DIST_TYPE"/"$DIST_NUM"/"$DIST_ARCH"/$SALT_MINION_VER/salt-archive-keyring.gpg
      # Create apt sources list file
-     echo "deb [signed-by=$KEY_DIR/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/salt/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/eb-salt.list
+     echo "deb [signed-by=$KEY_DIR/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/$SALT_REPO_PREFIX/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/eb-salt.list
   fi
 
   echo "Setting up sources for docker..."
@@ -297,7 +302,7 @@ install_node()
     echo "WARN: docker.socket is enabled, disabling..."
     systemctl disable docker.socket
   fi
-  for i in docker docker-engine docker.io containerd runc; do
+  for i in docker docker-engine docker.io containerd runc docker-ce docker-ce-cli docker-compose-plugin docker-ce-rootless-extras; do
     echo "INFO: Attempting to remove $i"
     apt-get remove -y $i  # Do not pause on missing packages
   done
@@ -511,9 +516,15 @@ if [ "$COMPONENT" = "server" ];then
     exit 1
   fi
 elif [ "$COMPONENT" = "node" ]; then
-
-  if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ];then
+  if [ "$ARCH" = "x86_64" ];then
     if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN10" ];then
+      install_node "$OS" "$ARCH"
+    else
+      echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
+      exit 1
+    fi
+  elif [ "$ARCH" = "aarch64" ];then
+    if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ];then
       install_node "$OS" "$ARCH"
     else
       echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
