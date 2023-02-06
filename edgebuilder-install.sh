@@ -332,7 +332,7 @@ install_node()
       fi
     fi
     apt-get update -qq
-    apt-get install -y -qq 	iotech-builderd-$VER
+    apt-get install -y -qq edgebuilder-node="$VER"
   fi
 
 
@@ -360,8 +360,9 @@ install_node()
   sudo systemctl start builderd.service
 
   echo "INFO: Validating installation"
-  OUTPUT=$(systemctl status builderd.service)
-  if [ "$OUTPUT" = "" ]; then
+  OUTPUT1=$(systemctl status builderd.service)
+  OUTPUT2=$(edgebuilder-node)
+  if [ "$OUTPUT1" = "unit builderd.service could not be found." || "$OUTPUT2" = "" ]; then
     echo "ERROR: Node installation could not be validated"
   else
     echo "INFO: Node validation succeeded"
