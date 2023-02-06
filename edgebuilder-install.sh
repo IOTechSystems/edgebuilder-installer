@@ -5,7 +5,6 @@ shift
 FILE=""
 REPOAUTH=""
 VER="2.1"
-SALT_MINION_VER="3005"
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -115,7 +114,7 @@ get_dist_type()
 
 }
 
-# Get the dist mapping for salt repos
+# Get the dist mapping
 get_dist_arch()
 {
   if [ "$1" = "x86_64" ]; then
@@ -123,7 +122,7 @@ get_dist_arch()
   elif [ "$1" = "aarch64" ]; then
     echo "arm64"
   elif [ "$1" = "armv7l" ]; then
-      echo "armhf"
+    echo "armhf"
   fi
 }
 
@@ -260,25 +259,6 @@ install_node()
   DIST_NUM=$(get_dist_num "$DIST")
   DIST_TYPE=$(get_dist_type "$DIST")
   DIST_ARCH=$(get_dist_arch "$ARCH")
-  echo "Setting up sources for salt..."
-  echo "$DIST_NAME"
-
-  if [ "$DIST_NAME" = "jammy" ]; then
-    export DEBIAN_FRONTEND=noninteractive  # Note: this selects the default to avoid the user prompt, another way is to find the offending library and set its restart without asking flag in debconf-set-selections to 'true'
-  fi
-
-  KEY_DIR="/etc/apt/keyrings"
-  if [ ! -d "$KEY_DIR" ]; then
-     mkdir -p /etc/apt/keyrings
-  fi
-  if grep -q "deb [signed-by=$KEY_DIR/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/salt/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
-     echo "INFO: Salt repo already added"
-  else
-     # Download key
-     sudo curl -fsSL -o "$KEY_DIR"/salt-archive-keyring.gpg https://repo.saltproject.io/salt/py3/"$DIST_TYPE"/"$DIST_NUM"/"$DIST_ARCH"/$SALT_MINION_VER/salt-archive-keyring.gpg
-     # Create apt sources list file
-     echo "deb [signed-by=$KEY_DIR/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/salt/py3/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/eb-salt.list
-  fi
 
   echo "Setting up sources for docker..."
   # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
