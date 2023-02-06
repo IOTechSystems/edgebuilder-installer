@@ -4,7 +4,7 @@ shift
 
 FILE=""
 REPOAUTH=""
-VER="2.2.0.dev"
+VER="2.1"
 SALT_MINION_VER="3005"
 
 while [ "$1" != "" ]; do
@@ -332,7 +332,7 @@ install_node()
       fi
     fi
     apt-get update -qq
-    apt-get install -y -qq edgebuilder-node="$VER"
+    apt-get install -y -qq 	iotech-builderd-$VER
   fi
 
 
@@ -356,8 +356,11 @@ install_node()
   systemctl is-active --quiet docker.service || systemctl start docker.service
   systemctl is-active --quiet docker.socket || systemctl start docker.socket
 
+  # Start builderd service
+  sudo systemctl start builderd.service
+
   echo "INFO: Validating installation"
-  OUTPUT=$(edgebuilder-node)
+  OUTPUT=$(systemctl status builderd.service)
   if [ "$OUTPUT" = "" ]; then
     echo "ERROR: Node installation could not be validated"
   else
@@ -514,13 +517,6 @@ elif [ "$COMPONENT" = "node" ]; then
 
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ];then
     if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN10" ];then
-      install_node "$OS" "$ARCH"
-    else
-      echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
-      exit 1
-    fi
-  elif [ "$ARCH" = "armv7l" ];then
-    if [ "$OS" = "$RASPBIAN10" ] || [ "$OS" = "$DEBIAN11" ] || [ "$OS" = "$DEBIAN10" ]; then
       install_node "$OS" "$ARCH"
     else
       echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
