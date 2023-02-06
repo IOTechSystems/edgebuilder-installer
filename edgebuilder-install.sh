@@ -4,7 +4,7 @@ shift
 
 FILE=""
 REPOAUTH=""
-VER="2.1"
+VER="2.2.0.dev"
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -336,13 +336,10 @@ install_node()
   systemctl is-active --quiet docker.service || systemctl start docker.service
   systemctl is-active --quiet docker.socket || systemctl start docker.socket
 
-  # Start builderd service
-  sudo systemctl start builderd.service
-
   echo "INFO: Validating installation"
   OUTPUT1=$(systemctl status builderd.service)
   OUTPUT2=$(edgebuilder-node)
-  if [ "$OUTPUT1" = "unit builderd.service could not be found." || "$OUTPUT2" = "" ]; then
+  if [ "$OUTPUT1" = "unit builderd.service could not be found." ] || [ "$OUTPUT2" = "" ]; then
     echo "ERROR: Node installation could not be validated"
   else
     echo "INFO: Node validation succeeded"
