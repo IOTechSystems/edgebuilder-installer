@@ -2,9 +2,16 @@
 COMPONENT=$1
 shift
 
+# Displays simple usage prompt
+display_usage()
+{
+  echo "Usage: edgebuilder-install.sh [param]"
+  echo "params: server, node, cli"
+}
+
 FILE=""
 REPOAUTH=""
-VER="2.2.0.dev"
+VER="2.2.0.dev-agent"
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -62,13 +69,6 @@ version_under_2_6_23(){
         print 1;
       }
     }')
-}
-
-# Displays simple usage prompt
-display_usage()
-{
-  echo "Usage: edgebuilder-install.sh [param]"
-  echo "params: server, node, cli"
 }
 
 # Gets the distribution 'name' bionic, focal etc
