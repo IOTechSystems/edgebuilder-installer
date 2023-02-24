@@ -277,7 +277,7 @@ install_node()
     echo "WARN: docker.socket is enabled, disabling..."
     systemctl disable docker.socket
   fi
-  for i in docker docker-engine docker.io containerd runc; do
+  for i in docker docker-engine docker.io containerd runc docker-ce docker-ce-cli docker-compose-plugin docker-ce-rootless-extras; do
     echo "INFO: Attempting to remove $i"
     apt-get remove -y $i  # Do not pause on missing packages
   done
@@ -492,8 +492,7 @@ if [ "$COMPONENT" = "server" ];then
     exit 1
   fi
 elif [ "$COMPONENT" = "node" ]; then
-
-  if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ];then
+  if [ "$ARCH" = "x86_64" ];then
     if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN10" ];then
       install_node "$OS" "$ARCH"
     else
