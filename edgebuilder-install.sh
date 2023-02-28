@@ -2,6 +2,7 @@
 COMPONENT=$1
 shift
 
+UNINSTALL=false
 FILE=""
 REPOAUTH=""
 VER="2.2.0.dev"
@@ -17,6 +18,10 @@ while [ "$1" != "" ]; do
         -r | --repo-auth)
             REPOAUTH="$2"
             shift
+            shift
+            ;;
+        -u)
+            UNINSTALL=true
             shift
             ;;
         *)
@@ -251,7 +256,6 @@ install_node()
     fi
   fi
 
-
   apt-get update -qq
   apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
 
@@ -339,7 +343,6 @@ install_node()
     apt-get update -qq
     apt-get install -y -qq edgebuilder-node="$VER"
   fi
-
 
   echo "INFO: Configuring user"
   USER=$(logname)
@@ -468,6 +471,34 @@ install_cli_rpm()
   fi
 }
 
+# Uninstall the Server components
+uninstall_server()
+{
+    sudo rm -rf /opt/edgebuilder/server/vault
+    ( sudo apt autoremove edgebuilder-server -y ) || ( echo "ERROR: an issue running autoremove Server" && exit 1 )
+    ( sudo apt-get -qq purge edgebuilder-server -y ) || ( echo "ERROR: an issue purging Server" && exit 1 )
+    echo "\n Node Server UNINSTALLED, exiting"
+    exit 0
+}
+
+# Uninstall the Node components
+uninstall_node()
+{
+    ( sudo apt autoremove edgebuilder-node -y ) || ( echo "ERROR: an issue running autoremove Node" && exit 1 )
+    ( sudo apt-get -qq purge edgebuilder-node -y ) || ( echo "ERROR: an issue purging Node" && exit 1 )
+    echo "\n Node Components UNINSTALLED, exiting"
+    exit 0
+}
+
+# Uninstall the CLI components
+uninstall_cli()
+{
+    ( sudo apt -qq autoremove edgebuilder-cli -y ) || ( echo "ERROR: an issue running autoremove CLI" && exit 1 )
+    ( sudo apt-get -qq purge edgebuilder-cli -y) || ( echo "ERROR: an issue purging CLI" && exit 1 )
+    echo "\n CLI Components UNINSTALLED, exiting"
+    exit 0
+}
+
 # Main starts here:
 
 # If no options are specified
@@ -505,6 +536,11 @@ ARCH="$(uname -m)"
 # Check compatibility
 echo "INFO: Checking compatibility"
 if [ "$COMPONENT" = "server" ];then
+
+  if "$UNINSTALL"; then
+      uninstall_server
+  fi
+
   if [ "$ARCH" = "x86_64" ];then
     if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN10" ];then
       install_server "$OS"
@@ -516,6 +552,11 @@ if [ "$COMPONENT" = "server" ];then
     exit 1
   fi
 elif [ "$COMPONENT" = "node" ]; then
+
+  if "$UNINSTALL"; then
+    uninstall_node
+  fi
+
   if [ "$ARCH" = "x86_64" ];then
     if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN10" ];then
       install_node "$OS" "$ARCH"
@@ -542,6 +583,10 @@ elif [ "$COMPONENT" = "node" ]; then
     exit 1
   fi
 elif [ "$COMPONENT" = "cli" ]; then
+
+  if "$UNINSTALL"; then
+      uninstall_cli
+  fi
 
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
     if [ -x "$(command -v apt-get)" ]; then
