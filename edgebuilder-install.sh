@@ -482,6 +482,12 @@ if [ "$(id -u)" -ne 0 ]
   exit 1
 fi
 
+# if the FILE argument has been supplied and is not a valid path to a file, output an error then exit
+if [ "$FILE" != "" ] && ! [ -f $FILE ]; then
+  echo "ERROR: File $FILE does not exist."
+  exit 1
+fi
+
 echo "INFO: Detecting OS and Architecture"
 
 # Detect OS
