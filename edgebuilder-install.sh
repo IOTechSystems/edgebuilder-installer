@@ -474,29 +474,102 @@ install_cli_rpm()
 # Uninstall the Server components
 uninstall_server()
 {
-    sudo rm -rf /opt/edgebuilder/server/vault
-    ( sudo apt autoremove edgebuilder-server -y ) || ( echo "ERROR: an issue running autoremove Server" && exit 1 )
-    ( sudo apt-get -qq purge edgebuilder-server -y ) || ( echo "ERROR: an issue purging Server" && exit 1 )
-    echo "\n Node Server UNINSTALLED, exiting"
-    exit 0
+#    sudo rm -rf /opt/edgebuilder/server/vault
+#    ( sudo apt autoremove -qq edgebuilder-server -y ) || echo "ERROR: an issue running autoremove Server" && exit 1
+#    ( sudo apt-get -qq purge edgebuilder-server -y ) || echo "ERROR: an issue purging Server" && exit 1
+#    echo "\n Node Server UNINSTALLED"
+#    exit 0
+    if dpkg -s edgebuilder-server; then
+
+        sudo rm -rf /opt/edgebuilder/server/vault
+
+        # attempt autoremove
+        if sudo apt autoremove -qq edgebuilder-server -y ;then
+            echo "Successfully autoremoved server components"
+        else
+            echo "ERROR: an issue running autoremove server components"
+            exit 1
+        fi
+
+        # attempt purge
+        if sudo apt-get -qq purge edgebuilder-server -y ;then
+            echo "Successfully purged Server Components"
+        else
+            echo "ERROR: an issue running autoremove Server Components"
+            exit 1
+        fi
+
+        # Successfully installed, exit
+        echo "Server Components Uninstalled"
+        exit 0
+    else
+        # package not currently installed, so exit
+        echo "Edgebuilder-server NOT currently installed"
+        exit 0
+    fi
 }
 
 # Uninstall the Node components
 uninstall_node()
 {
-    ( sudo apt autoremove edgebuilder-node -y ) || ( echo "ERROR: an issue running autoremove Node" && exit 1 )
-    ( sudo apt-get -qq purge edgebuilder-node -y ) || ( echo "ERROR: an issue purging Node" && exit 1 )
-    echo "\n Node Components UNINSTALLED, exiting"
-    exit 0
+  if dpkg -s edgebuilder-node; then
+
+      # attempt autoremove
+      if sudo apt autoremove -qq edgebuilder-node -y ;then
+          echo "Successfully autoremoved node components"
+      else
+          echo "ERROR: an issue running autoremove node components"
+          exit 1
+      fi
+
+      # attempt purge
+      if sudo apt-get purge -qq edgebuilder-node -y ;then
+          echo "Successfully purged Node Components"
+      else
+          echo "ERROR: an issue running autoremove Node Components"
+          exit 1
+      fi
+
+      # Successfully installed, exit
+      echo "Node Components Uninstalled"
+      exit 0
+  else
+      # package not currently installed, so exit
+      echo "Edgebuilder-node NOT currently installed"
+      exit 0
+  fi
 }
 
 # Uninstall the CLI components
 uninstall_cli()
 {
-    ( sudo apt -qq autoremove edgebuilder-cli -y ) || ( echo "ERROR: an issue running autoremove CLI" && exit 1 )
-    ( sudo apt-get -qq purge edgebuilder-cli -y) || ( echo "ERROR: an issue purging CLI" && exit 1 )
-    echo "\n CLI Components UNINSTALLED, exiting"
-    exit 0
+  # check if edgebuilder-cli is currently installed
+  if dpkg -s edgebuilder-cli; then
+
+      # attempt autoremove
+      if sudo apt autoremove -qq edgebuilder-cli -y ;then
+          echo "Successfully autoremoved CLI"
+      else
+          echo "ERROR: an issue running autoremove CLI"
+          exit 1
+      fi
+
+      # attempt purge
+      if sudo apt-get -qq purge edgebuilder-cli -y ;then
+          echo "Successfully purged CLI"
+      else
+          echo "ERROR: an issue running autoremove CLI"
+          exit 1
+      fi
+
+      # Successfully installed, exit
+      echo "CLI Components Uninstalled"
+      exit 0
+  else
+      # package not currently installed, so exit
+      echo "Edgebuilder-CLI NOT currently installed"
+      exit 0
+  fi
 }
 
 # Main starts here:
