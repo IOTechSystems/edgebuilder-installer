@@ -6,6 +6,7 @@ FILE=""
 REPOAUTH=""
 VER="2.2.0.dev"
 SALT_MINION_VER="3005"
+FRP_VERSION="0.47.0"
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -124,6 +125,16 @@ get_dist_arch()
     echo "arm64"
   elif [ "$1" = "armv7l" ]; then
       echo "armhf"
+  fi
+}
+
+# Get the arch names for FRP archives (https://github.com/fatedier/frp/releases)
+get_frp_dist_arch()
+{
+  if [ "$1" = "armhf" ]; then
+    echo "arm"
+  else
+    echo "$1"
   fi
 }
 
@@ -260,6 +271,7 @@ install_node()
   DIST_NUM=$(get_dist_num "$DIST")
   DIST_TYPE=$(get_dist_type "$DIST")
   DIST_ARCH=$(get_dist_arch "$ARCH")
+  FRP_DIST_ARCH=$(get_frp_dist_arch "$DIST_ARCH")
   SALT_REPO_PREFIX="salt/py3"
   echo "Setting up sources for salt..."
   echo "$DIST_NAME"
@@ -268,7 +280,7 @@ install_node()
     export DEBIAN_FRONTEND=noninteractive  # Note: this selects the default to avoid the user prompt, another way is to find the offending library and set its restart without asking flag in debconf-set-selections to 'true'
   fi
 
-  if [ "$DIST_ARCH" = "arm64" ]||[ "$DIST_ARCH" = "armhf "]; then
+  if [ "$DIST_ARCH" = "arm64" ]||[ "$DIST_ARCH" = "armhf " ]; then
     SALT_REPO_PREFIX="py3"
   fi
 
@@ -353,6 +365,11 @@ install_node()
     echo "Adding user \"$USER\" to docker group"
     usermod -aG docker "$USER"
   fi
+
+  # Install the FRP client on the node
+  curl -LO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
+    tar -xf frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && cd frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH" && cp frpc /usr/local/bin/
+
 
   # start docker services
   echo "INFO: Enabling docker services..."
