@@ -474,15 +474,9 @@ install_cli_rpm()
 # Uninstall the Server components
 uninstall_server()
 {
-#    sudo rm -rf /opt/edgebuilder/server/vault
-#    ( sudo apt autoremove -qq edgebuilder-server -y ) || echo "ERROR: an issue running autoremove Server" && exit 1
-#    ( sudo apt-get -qq purge edgebuilder-server -y ) || echo "ERROR: an issue purging Server" && exit 1
-#    echo "\n Node Server UNINSTALLED"
-#    exit 0
     if dpkg -s edgebuilder-server; then
 
         sudo rm -rf /opt/edgebuilder/server/vault
-
         # attempt autoremove
         if sudo apt autoremove -qq edgebuilder-server -y ;then
             echo "Successfully autoremoved server components"
