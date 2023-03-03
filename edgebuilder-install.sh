@@ -489,7 +489,7 @@ uninstall_server()
         if sudo apt-get -qq purge edgebuilder-server -y ;then
             echo "Successfully purged Server Components"
         else
-            echo "ERROR: an issue running autoremove Server Components"
+            echo "ERROR: an issue running purge Server Components"
             exit 1
         fi
 
@@ -498,7 +498,7 @@ uninstall_server()
         exit 0
     else
         # package not currently installed, so exit
-        echo "Edgebuilder-server NOT currently installed"
+        echo "edgebuilder-server NOT currently installed"
         exit 0
     fi
 }
@@ -520,7 +520,7 @@ uninstall_node()
       if sudo apt-get purge -qq edgebuilder-node -y ;then
           echo "Successfully purged Node Components"
       else
-          echo "ERROR: an issue running autoremove Node Components"
+          echo "ERROR: an issue running purge Node Components"
           exit 1
       fi
 
@@ -529,7 +529,7 @@ uninstall_node()
       exit 0
   else
       # package not currently installed, so exit
-      echo "Edgebuilder-node NOT currently installed"
+      echo "edgebuilder-node NOT currently installed"
       exit 0
   fi
 }
@@ -552,7 +552,7 @@ uninstall_cli()
       if sudo apt-get -qq purge edgebuilder-cli -y ;then
           echo "Successfully purged CLI"
       else
-          echo "ERROR: an issue running autoremove CLI"
+          echo "ERROR: an issue running purge CLI"
           exit 1
       fi
 
@@ -561,7 +561,7 @@ uninstall_cli()
       exit 0
   else
       # package not currently installed, so exit
-      echo "Edgebuilder-CLI NOT currently installed"
+      echo "edgebuilder-cli NOT currently installed"
       exit 0
   fi
 }
