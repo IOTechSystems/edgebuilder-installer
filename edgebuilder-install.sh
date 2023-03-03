@@ -481,7 +481,7 @@ uninstall_server()
         if sudo apt autoremove -qq edgebuilder-server -y ;then
             echo "Successfully autoremoved server components"
         else
-            echo "ERROR: an issue running autoremove server components"
+            echo "ERROR: Failed to autoremove Server Components"
             exit 1
         fi
 
@@ -489,7 +489,7 @@ uninstall_server()
         if sudo apt-get -qq purge edgebuilder-server -y ;then
             echo "Successfully purged Server Components"
         else
-            echo "ERROR: an issue running purge Server Components"
+            echo "ERROR: Failed to purge Server Components"
             exit 1
         fi
 
@@ -512,7 +512,7 @@ uninstall_node()
       if sudo apt autoremove -qq edgebuilder-node -y ;then
           echo "Successfully autoremoved node components"
       else
-          echo "ERROR: an issue running autoremove node components"
+          echo "ERROR: Failed to autoremove node components"
           exit 1
       fi
 
@@ -520,7 +520,7 @@ uninstall_node()
       if sudo apt-get purge -qq edgebuilder-node -y ;then
           echo "Successfully purged Node Components"
       else
-          echo "ERROR: an issue running purge Node Components"
+          echo "ERROR: Failed to purge Node Components"
           exit 1
       fi
 
@@ -544,7 +544,7 @@ uninstall_cli()
       if sudo apt autoremove -qq edgebuilder-cli -y ;then
           echo "Successfully autoremoved CLI"
       else
-          echo "ERROR: an issue running autoremove CLI"
+          echo "ERROR: Failed to autoremove CLI"
           exit 1
       fi
 
@@ -552,7 +552,7 @@ uninstall_cli()
       if sudo apt-get -qq purge edgebuilder-cli -y ;then
           echo "Successfully purged CLI"
       else
-          echo "ERROR: an issue running purge CLI"
+          echo "ERROR: Failed to purge CLI"
           exit 1
       fi
 
