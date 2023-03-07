@@ -371,12 +371,15 @@ install_node()
     tar -xf frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && cd frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH" && cp frpc /usr/local/bin/
 
 
-  # start docker services
+  # start services
   echo "INFO: Enabling docker services..."
   systemctl enable docker.service
   systemctl enable docker.socket
   systemctl is-active --quiet docker.service || systemctl start docker.service
   systemctl is-active --quiet docker.socket || systemctl start docker.socket
+  echo "INFO: Enabling FRP Client service"
+  systemctl enable eb-frpc.service
+  systemctl is-active --quiet eb-frpc.service || systemctl start eb-frpc.service
 
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-node)
