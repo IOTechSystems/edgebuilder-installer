@@ -315,7 +315,6 @@ install_node()
     apt-get install -y -qq edgebuilder-node="$VER"
   fi
 
-
   echo "INFO: Configuring user"
   USER=$(logname)
   if [ "$USER" != "root" ]; then
@@ -335,11 +334,12 @@ install_node()
   systemctl enable docker.socket
   systemctl is-active --quiet docker.service || systemctl start docker.service
   systemctl is-active --quiet docker.socket || systemctl start docker.socket
+  # enable builderd service
+  systemctl enable builderd.service
 
   echo "INFO: Validating installation"
-  OUTPUT1=$(systemctl status builderd.service)
-  OUTPUT2=$(edgebuilder-node)
-  if [ "$OUTPUT1" = "unit builderd.service could not be found." ] || [ "$OUTPUT2" = "" ]; then
+  OUTPUT=$(edgebuilder-node)
+  if [ "$OUTPUT" = "" ]; then
     echo "ERROR: Node installation could not be validated"
   else
     echo "INFO: Node validation succeeded"
