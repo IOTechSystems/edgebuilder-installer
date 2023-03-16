@@ -12,7 +12,7 @@ display_usage()
 UNINSTALL=false
 FILE=""
 REPOAUTH=""
-VER="2.2.0.dev-agent"
+VER="2.2.0.dev"
 
 while [ "$1" != "" ]; do
     case $1 in
