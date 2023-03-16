@@ -9,6 +9,7 @@ display_usage()
   echo "params: server, node, cli"
 }
 
+UNINSTALL=false
 FILE=""
 REPOAUTH=""
 VER="2.2.0.dev-agent"
@@ -23,6 +24,10 @@ while [ "$1" != "" ]; do
         -r | --repo-auth)
             REPOAUTH="$2"
             shift
+            shift
+            ;;
+        -u)
+            UNINSTALL=true
             shift
             ;;
         *)
@@ -250,7 +255,6 @@ install_node()
     fi
   fi
 
-
   apt-get update -qq
   apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
 
@@ -444,6 +448,101 @@ install_cli_rpm()
   fi
 }
 
+# Uninstall the Server components
+uninstall_server()
+{
+    if dpkg -s edgebuilder-server; then
+
+        sudo rm -rf /opt/edgebuilder/server/vault
+        # attempt autoremove
+        if sudo apt autoremove -qq edgebuilder-server -y ;then
+            echo "Successfully autoremoved server components"
+        else
+            echo "ERROR: Failed to autoremove Server Components"
+            exit 1
+        fi
+
+        # attempt purge
+        if sudo apt-get -qq purge edgebuilder-server -y ;then
+            echo "Successfully purged Server Components"
+        else
+            echo "ERROR: Failed to purge Server Components"
+            exit 1
+        fi
+
+        # Successfully installed, exit
+        echo "Server Components Uninstalled"
+        exit 0
+    else
+        # package not currently installed, so exit
+        echo "edgebuilder-server NOT currently installed"
+        exit 0
+    fi
+}
+
+# Uninstall the Node components
+uninstall_node()
+{
+  if dpkg -s edgebuilder-node; then
+
+      # attempt autoremove
+      if sudo apt autoremove -qq edgebuilder-node -y ;then
+          echo "Successfully autoremoved node components"
+      else
+          echo "ERROR: Failed to autoremove node components"
+          exit 1
+      fi
+
+      # attempt purge
+      if sudo apt-get purge -qq edgebuilder-node -y ;then
+          echo "Successfully purged Node Components"
+      else
+          echo "ERROR: Failed to purge Node Components"
+          exit 1
+      fi
+
+      # Successfully installed, exit
+      echo "Node Components Uninstalled"
+      exit 0
+  else
+      # package not currently installed, so exit
+      echo "edgebuilder-node NOT currently installed"
+      exit 0
+  fi
+}
+
+# Uninstall the CLI components
+uninstall_cli()
+{
+  # check if edgebuilder-cli is currently installed
+  if dpkg -s edgebuilder-cli; then
+
+      # attempt autoremove
+      if sudo apt autoremove -qq edgebuilder-cli -y ;then
+          echo "Successfully autoremoved CLI"
+      else
+          echo "ERROR: Failed to autoremove CLI"
+          exit 1
+      fi
+
+      # attempt purge
+      if sudo apt-get -qq purge edgebuilder-cli -y ;then
+          echo "Successfully purged CLI"
+      else
+          echo "ERROR: Failed to purge CLI"
+          exit 1
+      fi
+
+      # Successfully installed, exit
+      echo "CLI Components Uninstalled"
+      exit 0
+  else
+      # package not currently installed, so exit
+      echo "edgebuilder-cli NOT currently installed"
+      exit 0
+  fi
+}
+
 # Main starts here:
 
 # If no options are specified
@@ -481,6 +580,11 @@ ARCH="$(uname -m)"
 # Check compatibility
 echo "INFO: Checking compatibility"
 if [ "$COMPONENT" = "server" ];then
+
+  if "$UNINSTALL"; then
+      uninstall_server
+  fi
+
   if [ "$ARCH" = "x86_64" ];then
     if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN10" ];then
       install_server "$OS"
@@ -492,6 +596,11 @@ if [ "$COMPONENT" = "server" ];then
     exit 1
   fi
 elif [ "$COMPONENT" = "node" ]; then
+
+  if "$UNINSTALL"; then
+    uninstall_node
+  fi
+
   if [ "$ARCH" = "x86_64" ];then
     if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN10" ];then
       install_node "$OS" "$ARCH"
@@ -504,6 +613,10 @@ elif [ "$COMPONENT" = "node" ]; then
     exit 1
   fi
 elif [ "$COMPONENT" = "cli" ]; then
+
+  if "$UNINSTALL"; then
+      uninstall_cli
+  fi
 
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
     if [ -x "$(command -v apt-get)" ]; then
