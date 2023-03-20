@@ -2,10 +2,17 @@
 COMPONENT=$1
 shift
 
+# Displays simple usage prompt
+display_usage()
+{
+  echo "Usage: edgebuilder-install.sh [param]"
+  echo "params: server, node, cli"
+}
+
+UNINSTALL=false
 FILE=""
 REPOAUTH=""
 VER="2.2.0.dev"
-SALT_MINION_VER="3005"
 FRP_VERSION="0.47.0"
 
 while [ "$1" != "" ]; do
@@ -18,6 +25,10 @@ while [ "$1" != "" ]; do
         -r | --repo-auth)
             REPOAUTH="$2"
             shift
+            shift
+            ;;
+        -u)
+            UNINSTALL=true
             shift
             ;;
         *)
@@ -66,13 +77,6 @@ version_under_2_6_23(){
     }')
 }
 
-# Displays simple usage prompt
-display_usage()
-{
-  echo "Usage: edgebuilder-install.sh [param]"
-  echo "params: server, node, cli"
-}
-
 # Gets the distribution 'name' bionic, focal etc
 get_dist_name()
 {
@@ -116,7 +120,7 @@ get_dist_type()
 
 }
 
-# Get the dist mapping for salt repos
+# Get the dist mapping
 get_dist_arch()
 {
   if [ "$1" = "x86_64" ]; then
@@ -124,7 +128,7 @@ get_dist_arch()
   elif [ "$1" = "aarch64" ]; then
     echo "arm64"
   elif [ "$1" = "armv7l" ]; then
-      echo "armhf"
+    echo "armhf"
   fi
 }
 
@@ -262,7 +266,6 @@ install_node()
     fi
   fi
 
-
   apt-get update -qq
   apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
 
@@ -272,30 +275,6 @@ install_node()
   DIST_TYPE=$(get_dist_type "$DIST")
   DIST_ARCH=$(get_dist_arch "$ARCH")
   FRP_DIST_ARCH=$(get_frp_dist_arch "$DIST_ARCH")
-  SALT_REPO_PREFIX="salt/py3"
-  echo "Setting up sources for salt..."
-  echo "$DIST_NAME"
-
-  if [ "$DIST_NAME" = "jammy" ]; then
-    export DEBIAN_FRONTEND=noninteractive  # Note: this selects the default to avoid the user prompt, another way is to find the offending library and set its restart without asking flag in debconf-set-selections to 'true'
-  fi
-
-  if [ "$DIST_ARCH" = "arm64" ]||[ "$DIST_ARCH" = "armhf " ]; then
-    SALT_REPO_PREFIX="py3"
-  fi
-
-  KEY_DIR="/etc/apt/keyrings"
-  if [ ! -d "$KEY_DIR" ]; then
-     mkdir -p /etc/apt/keyrings
-  fi
-  if fgrep -q "deb [signed-by=$KEY_DIR/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/$SALT_REPO_PREFIX/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
-     echo "INFO: Salt repo already added"
-  else
-     # Download key
-     sudo curl -fsSL -o "$KEY_DIR"/salt-archive-keyring.gpg https://repo.saltproject.io/$SALT_REPO_PREFIX/"$DIST_TYPE"/"$DIST_NUM"/"$DIST_ARCH"/$SALT_MINION_VER/salt-archive-keyring.gpg
-     # Create apt sources list file
-     echo "deb [signed-by=$KEY_DIR/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/$SALT_REPO_PREFIX/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/eb-salt.list
-  fi
 
   echo "Setting up sources for docker..."
   # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
@@ -352,7 +331,6 @@ install_node()
     apt-get install -y -qq edgebuilder-node="$VER"
   fi
 
-
   echo "INFO: Configuring user"
   USER=$(logname)
   if [ "$USER" != "root" ]; then
@@ -370,7 +348,6 @@ install_node()
   curl -LO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
     tar -xf frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && cd frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH" && cp frpc /usr/local/bin/
 
-
   # start services
   echo "INFO: Enabling docker services..."
   systemctl enable docker.service
@@ -380,6 +357,8 @@ install_node()
   echo "INFO: Enabling FRP Client service"
   systemctl enable eb-frpc.service
   systemctl is-active --quiet eb-frpc.service || systemctl start eb-frpc.service
+  # enable builderd service
+  systemctl enable builderd.service
 
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-node)
@@ -488,6 +467,101 @@ install_cli_rpm()
   fi
 }
 
+# Uninstall the Server components
+uninstall_server()
+{
+    if dpkg -s edgebuilder-server; then
+
+        sudo rm -rf /opt/edgebuilder/server/vault
+        # attempt autoremove
+        if sudo apt autoremove -qq edgebuilder-server -y ;then
+            echo "Successfully autoremoved server components"
+        else
+            echo "ERROR: Failed to autoremove Server Components"
+            exit 1
+        fi
+
+        # attempt purge
+        if sudo apt-get -qq purge edgebuilder-server -y ;then
+            echo "Successfully purged Server Components"
+        else
+            echo "ERROR: Failed to purge Server Components"
+            exit 1
+        fi
+
+        # Successfully installed, exit
+        echo "Server Components Uninstalled"
+        exit 0
+    else
+        # package not currently installed, so exit
+        echo "edgebuilder-server NOT currently installed"
+        exit 0
+    fi
+}
+
+# Uninstall the Node components
+uninstall_node()
+{
+  if dpkg -s edgebuilder-node; then
+
+      # attempt autoremove
+      if sudo apt autoremove -qq edgebuilder-node -y ;then
+          echo "Successfully autoremoved node components"
+      else
+          echo "ERROR: Failed to autoremove node components"
+          exit 1
+      fi
+
+      # attempt purge
+      if sudo apt-get purge -qq edgebuilder-node -y ;then
+          echo "Successfully purged Node Components"
+      else
+          echo "ERROR: Failed to purge Node Components"
+          exit 1
+      fi
+
+      # Successfully installed, exit
+      echo "Node Components Uninstalled"
+      exit 0
+  else
+      # package not currently installed, so exit
+      echo "edgebuilder-node NOT currently installed"
+      exit 0
+  fi
+}
+
+# Uninstall the CLI components
+uninstall_cli()
+{
+  # check if edgebuilder-cli is currently installed
+  if dpkg -s edgebuilder-cli; then
+
+      # attempt autoremove
+      if sudo apt autoremove -qq edgebuilder-cli -y ;then
+          echo "Successfully autoremoved CLI"
+      else
+          echo "ERROR: Failed to autoremove CLI"
+          exit 1
+      fi
+
+      # attempt purge
+      if sudo apt-get -qq purge edgebuilder-cli -y ;then
+          echo "Successfully purged CLI"
+      else
+          echo "ERROR: Failed to purge CLI"
+          exit 1
+      fi
+
+      # Successfully installed, exit
+      echo "CLI Components Uninstalled"
+      exit 0
+  else
+      # package not currently installed, so exit
+      echo "edgebuilder-cli NOT currently installed"
+      exit 0
+  fi
+}
+
 # Main starts here:
 
 # If no options are specified
@@ -525,6 +599,11 @@ ARCH="$(uname -m)"
 # Check compatibility
 echo "INFO: Checking compatibility"
 if [ "$COMPONENT" = "server" ];then
+
+  if "$UNINSTALL"; then
+      uninstall_server
+  fi
+
   if [ "$ARCH" = "x86_64" ];then
     if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN10" ];then
       install_server "$OS"
@@ -536,22 +615,13 @@ if [ "$COMPONENT" = "server" ];then
     exit 1
   fi
 elif [ "$COMPONENT" = "node" ]; then
+
+  if "$UNINSTALL"; then
+    uninstall_node
+  fi
+
   if [ "$ARCH" = "x86_64" ];then
     if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN10" ];then
-      install_node "$OS" "$ARCH"
-    else
-      echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
-      exit 1
-    fi
-  elif [ "$ARCH" = "aarch64" ];then
-    if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ];then
-      install_node "$OS" "$ARCH"
-    else
-      echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
-      exit 1
-    fi
-  elif [ "$ARCH" = "armv7l" ];then
-    if [ "$OS" = "$RASPBIAN10" ] || [ "$OS" = "$DEBIAN11" ] || [ "$OS" = "$DEBIAN10" ]; then
       install_node "$OS" "$ARCH"
     else
       echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
@@ -562,6 +632,10 @@ elif [ "$COMPONENT" = "node" ]; then
     exit 1
   fi
 elif [ "$COMPONENT" = "cli" ]; then
+
+  if "$UNINSTALL"; then
+      uninstall_cli
+  fi
 
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
     if [ -x "$(command -v apt-get)" ]; then
