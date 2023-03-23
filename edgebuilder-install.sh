@@ -1,44 +1,10 @@
 #!/bin/sh
-COMPONENT=$1
-shift
-
-# Displays simple usage prompt
-display_usage()
-{
-  echo "Usage: edgebuilder-install.sh [param]"
-  echo "params: server, node, cli"
-}
 
 UNINSTALL=false
 FILE=""
 REPOAUTH=""
 VER="2.2.0.dev"
 FRP_VERSION="0.47.0"
-
-while [ "$1" != "" ]; do
-    case $1 in
-        -f | --file)
-            FILE="$2"
-            shift
-            shift
-            ;;
-        -r | --repo-auth)
-            REPOAUTH="$2"
-            shift
-            shift
-            ;;
-        -u)
-            UNINSTALL=true
-            shift
-            ;;
-        *)
-            UNKNOWN_ARG="$1"
-            echo "$NODE_ERROR_PREFIX unknown argument '$UNKNOWN_ARG'"
-            display_usage
-            exit 3
-            ;;
-    esac
-done
 
 UBUNTU2204="Ubuntu 22.04"
 UBUNTU2004="Ubuntu 20.04"
@@ -157,6 +123,7 @@ install_server()
     fi
   fi
 
+  export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
   apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
 
@@ -266,6 +233,7 @@ install_node()
     fi
   fi
 
+  export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
   apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
 
@@ -305,29 +273,30 @@ install_node()
   curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o "$KEY_DIR"/docker.gpg
   echo "deb [arch=$DIST_ARCH signed-by=$KEY_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
+  # Setting up repos to access iotech packages
+  wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
+  if [ "$REPOAUTH" != "" ]; then
+    if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
+      echo "INFO: IoTech PRIVATE repo already added"
+    else
+      echo "INFO: Adding IoTech PRIVATE repo"
+      echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
+    fi
+  else
+    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
+      echo "INFO: IoTech repo already added"
+    else
+      echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
+    fi
+  fi
+
   # check if using local file for dev purposes
   echo "INFO: Installing"
   echo "FILE = ${FILE}"
+  apt-get update -qq
   if test -f "$FILE" ; then
-    apt-get update -qq
     apt-get install -y ./"$FILE"
   else
-    wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
-    if [ "$REPOAUTH" != "" ]; then
-      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
-        echo "INFO: IoTech PRIVATE repo already added"
-      else
-        echo "INFO: Adding IoTech PRIVATE repo"
-        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
-      fi
-    else
-      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
-        echo "INFO: IoTech repo already added"
-      else
-        echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
-      fi
-    fi
-    apt-get update -qq
     apt-get install -y -qq edgebuilder-node="$VER"
   fi
 
@@ -414,8 +383,14 @@ install_cli_deb()
         echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech-cli.list
       fi
     fi
+  fi
 
-    sudo apt-get update -qq
+  # check if using local file for dev pur
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq
+  if test -f "$FILE" ; then
+    apt-get install -y ./$FILE
+  else
     sudo apt-get install -y -qq edgebuilder-cli="$VER"
   fi
 
@@ -470,6 +445,7 @@ install_cli_rpm()
 # Uninstall the Server components
 uninstall_server()
 {
+    export DEBIAN_FRONTEND=noninteractive
     if dpkg -s edgebuilder-server; then
 
         sudo rm -rf /opt/edgebuilder/server/vault
@@ -562,10 +538,49 @@ uninstall_cli()
   fi
 }
 
-# Main starts here:
+# Displays simple usage prompt
+display_usage()
+{
+  echo "Usage: edgebuilder-install.sh [param] [options]"
+  echo "params: server, node, cli"
+  echo "options: "
+  echo "     -r, --repo-auth : IoTech repo auth token to access packages"
+  echo "     -u, --uninstall : Uninstall the package"
+  echo "     -f, --file      : path to local package"
+}
 
-# If no options are specified
-if [ -z $COMPONENT ];then
+## Main starts here: ##
+
+# If no options are specified, print help
+while [ "$1" != "" ]; do
+    case $1 in
+        node | server | cli)
+            COMPONENT="$1"
+            shift
+            ;;
+        -f | --file)
+            FILE="$2"
+            shift
+            shift
+            ;;
+        -r | --repo-auth)
+            REPOAUTH="$2"
+            shift
+            shift
+            ;;
+        -u | --uninstall)
+            UNINSTALL=true
+            shift
+            ;;
+        *)
+            UNKNOWN_ARG="$1"
+            echo "$NODE_ERROR_PREFIX unknown argument '$UNKNOWN_ARG'"
+            display_usage
+            exit 3
+            ;;
+    esac
+done
+if [ -z "$COMPONENT" ];then
     display_usage
     exit 1
 fi
@@ -573,6 +588,12 @@ fi
 # If not run as sudo, exit
 if [ "$(id -u)" -ne 0 ]
   then echo "ERROR: Insufficient permissions, please run as root/sudo"
+  exit 1
+fi
+
+# if the FILE argument has been supplied and is not a valid path to a file, output an error then exit
+if [ "$FILE" != "" ] && ! [ -f $FILE ]; then
+  echo "ERROR: File $FILE does not exist."
   exit 1
 fi
 
