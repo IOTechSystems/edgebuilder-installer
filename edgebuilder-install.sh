@@ -1,16 +1,5 @@
 #!/bin/sh
 
-# Displays simple usage prompt
-display_usage()
-{
-  echo "Usage: edgebuilder-install.sh [param] [options]"
-  echo "params: server, node, cli"
-  echo "options: "
-  echo "     -r, --repo-auth : IoTech repo auth token to access packages"
-  echo "     -u              : Uninstall the package"
-  echo "     -f, --file      : path to local package"
-}
-
 UNINSTALL=false
 FILE=""
 REPOAUTH=""
@@ -530,6 +519,17 @@ uninstall_cli()
   fi
 }
 
+# Displays simple usage prompt
+display_usage()
+{
+  echo "Usage: edgebuilder-install.sh [param] [options]"
+  echo "params: server, node, cli"
+  echo "options: "
+  echo "     -r, --repo-auth : IoTech repo auth token to access packages"
+  echo "     -u, --uninstall : Uninstall the package"
+  echo "     -f, --file      : path to local package"
+}
+
 ## Main starts here: ##
 
 # If no options are specified, print help
@@ -549,7 +549,7 @@ while [ "$1" != "" ]; do
             shift
             shift
             ;;
-        -u)
+        -u | --uninstall)
             UNINSTALL=true
             shift
             ;;
