@@ -323,9 +323,6 @@ install_node()
   systemctl enable docker.socket
   systemctl is-active --quiet docker.service || systemctl start docker.service
   systemctl is-active --quiet docker.socket || systemctl start docker.socket
-  echo "INFO: Enabling FRP Client service"
-  systemctl enable eb-frpc.service
-  systemctl is-active --quiet eb-frpc.service || systemctl start eb-frpc.service
   # enable builderd service
   systemctl enable builderd.service
 
