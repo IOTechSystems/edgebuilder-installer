@@ -3,6 +3,7 @@ COMPONENT=$1
 shift
 
 UNINSTALL=false
+UNINSTALL_ALL=false
 FILE=""
 REPOAUTH=""
 VER="2.2.0.dev"
@@ -18,6 +19,10 @@ while [ "$1" != "" ]; do
         -r | --repo-auth)
             REPOAUTH="$2"
             shift
+            shift
+            ;;
+        -ua)
+            UNINSTALL_ALL=true
             shift
             ;;
         -u)
@@ -474,59 +479,39 @@ install_cli_rpm()
 # Uninstall the Server components
 uninstall_server()
 {
-    if dpkg -s edgebuilder-server; then
+  # check if edgebuilder-server is currently installed
+  if dpkg -s edgebuilder-server; then
 
-        sudo rm -rf /opt/edgebuilder/server/vault
-        # attempt autoremove
-        if sudo apt autoremove -qq edgebuilder-server -y ;then
-            echo "Successfully autoremoved server components"
-        else
-            echo "ERROR: Failed to autoremove Server Components"
-            exit 1
-        fi
-
-        # attempt purge
-        if sudo apt-get -qq purge edgebuilder-server -y ;then
-            echo "Successfully purged Server Components"
-        else
-            echo "ERROR: Failed to purge Server Components"
-            exit 1
-        fi
-
-        # Successfully installed, exit
-        echo "Server Components Uninstalled"
-        exit 0
-    else
-        # package not currently installed, so exit
-        echo "edgebuilder-server NOT currently installed"
-        exit 0
-    fi
+      sudo rm -rf /opt/edgebuilder/server/vault
+      sudo apt autoremove -qq edgebuilder-server -y
+      if dpkg -s edgebuilder-server ; then
+          echo "ERROR: Server Components Uninstallation Failed"
+          exit 1
+      else
+          echo "Server Components Uninstalled"
+          exit 0
+      fi
+  else
+      # package not currently installed, so exit
+      echo "edgebuilder-server NOT currently installed"
+      exit 0
+  fi
 }
 
 # Uninstall the Node components
 uninstall_node()
 {
+  # check if edgebuilder-node is currently installed
   if dpkg -s edgebuilder-node; then
 
-      # attempt autoremove
-      if sudo apt autoremove -qq edgebuilder-node -y ;then
-          echo "Successfully autoremoved node components"
-      else
-          echo "ERROR: Failed to autoremove node components"
+      sudo apt-get -qq remove edgebuilder-node -y
+      if dpkg -s edgebuilder-node; then
+          echo "ERROR: Node Components Uninstallation Failed"
           exit 1
-      fi
-
-      # attempt purge
-      if sudo apt-get purge -qq edgebuilder-node -y ;then
-          echo "Successfully purged Node Components"
       else
-          echo "ERROR: Failed to purge Node Components"
-          exit 1
+          echo "Node Components Uninstalled"
+          exit 0
       fi
-
-      # Successfully installed, exit
-      echo "Node Components Uninstalled"
-      exit 0
   else
       # package not currently installed, so exit
       echo "edgebuilder-node NOT currently installed"
@@ -540,25 +525,14 @@ uninstall_cli()
   # check if edgebuilder-cli is currently installed
   if dpkg -s edgebuilder-cli; then
 
-      # attempt autoremove
-      if sudo apt autoremove -qq edgebuilder-cli -y ;then
-          echo "Successfully autoremoved CLI"
-      else
-          echo "ERROR: Failed to autoremove CLI"
+      sudo apt-get -qq remove edgebuilder-cli -y
+      if dpkg -s edgebuilder-cli ; then
+          echo "ERROR: CLI Components Uninstallation Failed"
           exit 1
-      fi
-
-      # attempt purge
-      if sudo apt-get -qq purge edgebuilder-cli -y ;then
-          echo "Successfully purged CLI"
       else
-          echo "ERROR: Failed to purge CLI"
-          exit 1
+          echo "CLI Components Uninstalled"
+          exit 0
       fi
-
-      # Successfully installed, exit
-      echo "CLI Components Uninstalled"
-      exit 0
   else
       # package not currently installed, so exit
       echo "edgebuilder-cli NOT currently installed"
@@ -599,6 +573,16 @@ fi
 
 # Detect Arch
 ARCH="$(uname -m)"
+
+
+if "$UNINSTALL_ALL"; then
+  echo " Unistalling All"
+  sudo ./edgebuilder-install.sh cli -u
+  sudo ./edgebuilder-install.sh node -u
+  sudo ./edgebuilder-install.sh server -u
+  exit 0
+fi
+
 
 # Check compatibility
 echo "INFO: Checking compatibility"
