@@ -480,11 +480,11 @@ install_cli_rpm()
 uninstall_server()
 {
   # check if edgebuilder-server is currently installed
-  if dpkg -s edgebuilder-server; then
+  if (dpkg-query -W -f='${Status}' edgebuilder-server 2>/dev/null ) then
 
       sudo rm -rf /opt/edgebuilder/server/vault
       sudo apt autoremove -qq edgebuilder-server -y
-      if dpkg -s edgebuilder-server ; then
+      if (dpkg-query -W -f='${Status}' edgebuilder-server 2>/dev/null ) then
           echo "ERROR: Server Components Uninstallation Failed"
           exit 1
       else
@@ -502,10 +502,10 @@ uninstall_server()
 uninstall_node()
 {
   # check if edgebuilder-node is currently installed
-  if dpkg -s edgebuilder-node; then
+  if (dpkg-query -W -f='${Status}' edgebuilder-node 2>/dev/null ) then
 
       sudo apt-get -qq remove edgebuilder-node -y
-      if dpkg -s edgebuilder-node; then
+      if (dpkg-query -W -f='${Status}' edgebuilder-node 2>/dev/null ) then
           echo "ERROR: Node Components Uninstallation Failed"
           exit 1
       else
@@ -519,18 +519,18 @@ uninstall_node()
   fi
 }
 
-# Uninstall the CLI components
+# Uninstall the CLI components DEB
 uninstall_cli()
 {
   # check if edgebuilder-cli is currently installed
-  if dpkg -s edgebuilder-cli; then
+  if (dpkg-query -W -f='${Status}' edgebuilder-cli 2>/dev/null ) then
 
       sudo apt-get -qq remove edgebuilder-cli -y
-      if dpkg -s edgebuilder-cli ; then
+      if (dpkg-query -W -f='${Status}' edgebuilder-cli 2>/dev/null ) ; then
           echo "ERROR: CLI Components Uninstallation Failed"
           exit 1
       else
-          echo "CLI Components Uninstalled"
+          echo "CLI Components Successfully Uninstalled"
           exit 0
       fi
   else
@@ -574,15 +574,13 @@ fi
 # Detect Arch
 ARCH="$(uname -m)"
 
-
 if "$UNINSTALL_ALL"; then
-  echo " Unistalling All"
+  echo " Uninstalling All"
   sudo ./edgebuilder-install.sh cli -u
   sudo ./edgebuilder-install.sh node -u
   sudo ./edgebuilder-install.sh server -u
   exit 0
 fi
-
 
 # Check compatibility
 echo "INFO: Checking compatibility"
@@ -602,6 +600,7 @@ if [ "$COMPONENT" = "server" ];then
     echo "ERROR: The Edge Builder server components are not supported on $ARCH"
     exit 1
   fi
+
 elif [ "$COMPONENT" = "node" ]; then
 
   if "$UNINSTALL"; then
@@ -633,12 +632,14 @@ elif [ "$COMPONENT" = "node" ]; then
     echo "ERROR: The Edge Builder node components are not supported on $ARCH"
     exit 1
   fi
+
 elif [ "$COMPONENT" = "cli" ]; then
 
   if "$UNINSTALL"; then
-      uninstall_cli
+    uninstall_cli
   fi
 
+  #  Do we want to remove most of this? we are only supporting the deb way now
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
     if [ -x "$(command -v apt-get)" ]; then
       install_cli_deb "$OS" "$ARCH"
