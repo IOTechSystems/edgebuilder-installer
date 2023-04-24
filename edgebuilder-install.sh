@@ -654,29 +654,3 @@ elif [ "$COMPONENT" = "cli" ]; then
     exit 1
   fi
 fi
-
-# THIS WAS INSIDE NODE
-#
-##// WAS WORKING BEFORE
-#
-#  # check if edgebuilder-node is currently installed
-##  if dpkg -s edgebuilder-node ; then
-#  $pkg = "edgebuilder-node"
-##  if dpkg --get-selections | grep -q "^$pkg[[:space:]]*install$" >/dev/null; then
-#  if (dpkg -l edgebuilder-node | grep -q ^.i ); then
-#
-#      sudo apt-get -qq remove edgebuilder-node -y
-##      if dpkg --get-selections | grep -q "^$pkg[[:space:]]*install$" >/dev/null; then
-##      if dpkg -s edgebuilder-node ; then
-#      if (dpkg -l edgebuilder-node | grep -q ^.i ); then
-#          echo "ERROR: Node Components Uninstallation Failed"
-#          exit 1
-#      else
-#          echo "Node Components Uninstalled"
-#          exit 0
-#      fi
-#  else
-#      # package not currently installed, so exit
-#      echo "edgebuilder-node NOT currently installed"
-#      exit 0
-#  fi
