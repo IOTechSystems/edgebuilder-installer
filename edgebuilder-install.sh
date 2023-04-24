@@ -480,16 +480,16 @@ install_cli_rpm()
 uninstall_server()
 {
   # check if edgebuilder-server is currently installed
-  if (dpkg-query -W -f='${Status}' edgebuilder-server 2>/dev/null ) then
+  if dpkg -s edgebuilder-server; then
 
       sudo rm -rf /opt/edgebuilder/server/vault
       sudo apt autoremove -qq edgebuilder-server -y
-      if (dpkg-query -W -f='${Status}' edgebuilder-server 2>/dev/null ) then
-          echo "ERROR: Server Components Uninstallation Failed"
-          exit 1
+      if dpkg --list edgebuilder-server |grep "^rc"; then
+        echo "Server Components Uninstalled"
+        exit 0
       else
-          echo "Server Components Uninstalled"
-          exit 0
+        echo "ERROR: Server Components Uninstallation Failed"
+        exit 1
       fi
   else
       # package not currently installed, so exit
@@ -502,15 +502,14 @@ uninstall_server()
 uninstall_node()
 {
   # check if edgebuilder-node is currently installed
-  if (dpkg-query -W -f='${Status}' edgebuilder-node 2>/dev/null ) then
-
+  if dpkg -s edgebuilder-node; then
       sudo apt-get -qq remove edgebuilder-node -y
-      if (dpkg-query -W -f='${Status}' edgebuilder-node 2>/dev/null ) then
-          echo "ERROR: Node Components Uninstallation Failed"
-          exit 1
-      else
+      if dpkg --list edgebuilder-node |grep "^rc" ; then
           echo "Node Components Uninstalled"
           exit 0
+      else
+          echo "ERROR: Node Components Uninstallation Failed"
+          exit 1
       fi
   else
       # package not currently installed, so exit
@@ -600,7 +599,6 @@ if [ "$COMPONENT" = "server" ];then
     echo "ERROR: The Edge Builder server components are not supported on $ARCH"
     exit 1
   fi
-
 elif [ "$COMPONENT" = "node" ]; then
 
   if "$UNINSTALL"; then
@@ -632,7 +630,6 @@ elif [ "$COMPONENT" = "node" ]; then
     echo "ERROR: The Edge Builder node components are not supported on $ARCH"
     exit 1
   fi
-
 elif [ "$COMPONENT" = "cli" ]; then
 
   if "$UNINSTALL"; then
@@ -656,3 +653,29 @@ elif [ "$COMPONENT" = "cli" ]; then
     exit 1
   fi
 fi
+
+# THIS WAS INSIDE NODE
+#
+##// WAS WORKING BEFORE
+#
+#  # check if edgebuilder-node is currently installed
+##  if dpkg -s edgebuilder-node ; then
+#  $pkg = "edgebuilder-node"
+##  if dpkg --get-selections | grep -q "^$pkg[[:space:]]*install$" >/dev/null; then
+#  if (dpkg -l edgebuilder-node | grep -q ^.i ); then
+#
+#      sudo apt-get -qq remove edgebuilder-node -y
+##      if dpkg --get-selections | grep -q "^$pkg[[:space:]]*install$" >/dev/null; then
+##      if dpkg -s edgebuilder-node ; then
+#      if (dpkg -l edgebuilder-node | grep -q ^.i ); then
+#          echo "ERROR: Node Components Uninstallation Failed"
+#          exit 1
+#      else
+#          echo "Node Components Uninstalled"
+#          exit 0
+#      fi
+#  else
+#      # package not currently installed, so exit
+#      echo "edgebuilder-node NOT currently installed"
+#      exit 0
+#  fi
