@@ -78,9 +78,9 @@ version_under_2_6_23(){
 # Displays simple usage prompt
 display_usage()
 {
-  echo "Usage: edgebuilder-install.sh [param] [flags]"
+  echo "Usage: edgebuilder-install.sh [param] [optional param]"
   echo "params: server, node, cli"
-  echo "flags: -u to uninstall, -ua to uninstall server, node, and cli"
+  echo "optional params: -u to uninstall, -ua to uninstall server, node, and cli"
 }
 
 # Gets the distribution 'name' bionic, focal etc
