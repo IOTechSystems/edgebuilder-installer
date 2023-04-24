@@ -17,7 +17,7 @@ Usage: sudo ./edgebuilder-install.sh [param]
 params: server, node, cli
 
 to uninstall, use optional param : -u  
-
+to uninstall all, use optional param : -ua
 
 ## Dev info only:
 
