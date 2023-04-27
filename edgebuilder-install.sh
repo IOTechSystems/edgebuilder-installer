@@ -4,6 +4,8 @@ UNINSTALL=false
 FILE=""
 REPOAUTH=""
 VER="2.2.0.dev"
+FRP_VERSION="0.47.0"
+VAULT_SSH_HELPER_VERSION="0.2.1"
 
 UBUNTU2204="Ubuntu 22.04"
 UBUNTU2004="Ubuntu 20.04"
@@ -96,6 +98,28 @@ get_dist_arch()
     echo "armhf"
   fi
 }
+
+# Get the arch names for FRP archives (https://github.com/fatedier/frp/releases)
+get_frp_dist_arch()
+{
+  if [ "$1" = "armhf" ]; then
+    echo "arm"
+  else
+    echo "$1"
+  fi
+}
+
+# Get the arch names for vault-ssh-helper archives (https://releases.hashicorp.com/vault-ssh-helper)
+get_vault_ssh_helper_dist_arch()
+{
+  if [ "$1" = "armhf" ] || [ "$1" = "arm64" ]; then
+    echo "arm"
+  else
+    echo "$1"
+  fi
+}
+
+
 
 # Installs the server components
 # Args: Distribution
@@ -224,13 +248,15 @@ install_node()
 
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
-  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
+  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release unzip
 
   echo "INFO: Setting up apt"
   DIST_NAME=$(get_dist_name "$DIST")
   DIST_NUM=$(get_dist_num "$DIST")
   DIST_TYPE=$(get_dist_type "$DIST")
   DIST_ARCH=$(get_dist_arch "$ARCH")
+  FRP_DIST_ARCH=$(get_frp_dist_arch "$DIST_ARCH")
+  VAULT_SSH_DIST_ARCH=$(get_vault_ssh_helper_dist_arch "$DIST_ARCH")
 
   echo "Setting up sources for docker..."
   # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
@@ -301,7 +327,22 @@ install_node()
     usermod -aG docker "$USER"
   fi
 
-  # start docker services
+  # Install the FRP client on the node
+  echo "INFO: Installing FRP client..."
+  curl -LO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
+    tar -xf frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && cd frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH" && cp frpc /usr/local/bin/
+
+  # Install vault-ssh-helper on the node
+  echo "INFO: Installing vault-ssh-helper"
+  wget https://releases.hashicorp.com/vault-ssh-helper/"$VAULT_SSH_HELPER_VERSION"/vault-ssh-helper_"$VAULT_SSH_HELPER_VERSION"_linux_"$VAULT_SSH_DIST_ARCH".zip && \
+    unzip -q vault-ssh-helper_"$VAULT_SSH_HELPER_VERSION"_linux_"$VAULT_SSH_DIST_ARCH".zip -d /usr/local/bin && \
+    chmod 0755 /usr/local/bin/vault-ssh-helper && chown root:root /usr/local/bin/vault-ssh-helper
+  sed -i 's/^.*@include common-auth/#&/' /etc/pam.d/sshd
+  echo "auth requisite pam_exec.so quiet expose_authtok log=/var/log/vault-ssh.log /usr/local/bin/vault-ssh-helper -config=/etc/vault-ssh-helper.d/config.hcl" >> /etc/pam.d/sshd
+  echo "auth optional pam_unix.so not_set_pass use_first_pass nodelay" >> /etc/pam.d/sshd
+
+
+  # start services
   echo "INFO: Enabling docker services..."
   systemctl enable docker.service
   systemctl enable docker.socket
