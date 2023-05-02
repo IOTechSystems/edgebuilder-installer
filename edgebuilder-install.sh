@@ -485,8 +485,8 @@ uninstall_server()
 
       sudo rm -rf /opt/edgebuilder/server/vault
       sudo apt autoremove -qq edgebuilder-server -y
-      if dpkg --list edgebuilder-server |grep "^rc"; then
-        echo "Server Components Uninstalled"
+      if (dpkg --list edgebuilder-server |grep "^rc") || !(dpkg --list edgebuilder-server); then
+        echo "Server Components Successfully Uninstalled"
         exit 0
       else
         echo "ERROR: Server Components Uninstallation Failed"
@@ -505,8 +505,9 @@ uninstall_node()
   # check if edgebuilder-node is currently installed
   if dpkg -s edgebuilder-node; then
       sudo apt-get -qq remove edgebuilder-node -y
-      if dpkg --list edgebuilder-node |grep "^rc" ; then
-          echo "Node Components Uninstalled"
+
+      if (dpkg --list edgebuilder-node |grep "^rc") || !(dpkg --list edgebuilder-node); then
+          echo "Node Components Successfully Uninstalled"
           exit 0
       else
           echo "ERROR: Node Components Uninstallation Failed"
