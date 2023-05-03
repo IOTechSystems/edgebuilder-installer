@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# TEST
+
 UNINSTALL=false
 UNINSTALL_ALL=false
 FILE=""
