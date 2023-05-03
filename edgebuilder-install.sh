@@ -1,42 +1,12 @@
 #!/bin/sh
-COMPONENT=$1
-shift
 
 UNINSTALL=false
 UNINSTALL_ALL=false
 FILE=""
 REPOAUTH=""
 VER="2.2.0.dev"
-SALT_MINION_VER="3005"
-
-while [ "$1" != "" ]; do
-    case $1 in
-        -f | --file)
-            FILE="$2"
-            shift
-            shift
-            ;;
-        -r | --repo-auth)
-            REPOAUTH="$2"
-            shift
-            shift
-            ;;
-        -ua)
-            UNINSTALL_ALL=true
-            shift
-            ;;
-        -u)
-            UNINSTALL=true
-            shift
-            ;;
-        *)
-            UNKNOWN_ARG="$1"
-            echo "$NODE_ERROR_PREFIX unknown argument '$UNKNOWN_ARG'"
-            display_usage
-            exit 3
-            ;;
-    esac
-done
+FRP_VERSION="0.47.0"
+VAULT_SSH_HELPER_VERSION="0.2.1"
 
 UBUNTU2204="Ubuntu 22.04"
 UBUNTU2004="Ubuntu 20.04"
@@ -73,14 +43,6 @@ version_under_2_6_23(){
         print 1;
       }
     }')
-}
-
-# Displays simple usage prompt
-display_usage()
-{
-  echo "Usage: edgebuilder-install.sh [param] [optional param]"
-  echo "params: server, node, cli"
-  echo "optional params: -u to uninstall, -ua to uninstall server, node, and cli"
 }
 
 # Gets the distribution 'name' bionic, focal etc
@@ -126,7 +88,7 @@ get_dist_type()
 
 }
 
-# Get the dist mapping for salt repos
+# Get the dist mapping
 get_dist_arch()
 {
   if [ "$1" = "x86_64" ]; then
@@ -134,9 +96,31 @@ get_dist_arch()
   elif [ "$1" = "aarch64" ]; then
     echo "arm64"
   elif [ "$1" = "armv7l" ]; then
-      echo "armhf"
+    echo "armhf"
   fi
 }
+
+# Get the arch names for FRP archives (https://github.com/fatedier/frp/releases)
+get_frp_dist_arch()
+{
+  if [ "$1" = "armhf" ]; then
+    echo "arm"
+  else
+    echo "$1"
+  fi
+}
+
+# Get the arch names for vault-ssh-helper archives (https://releases.hashicorp.com/vault-ssh-helper)
+get_vault_ssh_helper_dist_arch()
+{
+  if [ "$1" = "armhf" ] || [ "$1" = "arm64" ]; then
+    echo "arm"
+  else
+    echo "$1"
+  fi
+}
+
+
 
 # Installs the server components
 # Args: Distribution
@@ -153,6 +137,7 @@ install_server()
     fi
   fi
 
+  export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
   apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
 
@@ -262,38 +247,17 @@ install_node()
     fi
   fi
 
+  export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
-  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
+  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release unzip
 
   echo "INFO: Setting up apt"
   DIST_NAME=$(get_dist_name "$DIST")
   DIST_NUM=$(get_dist_num "$DIST")
   DIST_TYPE=$(get_dist_type "$DIST")
   DIST_ARCH=$(get_dist_arch "$ARCH")
-  SALT_REPO_PREFIX="salt/py3"
-  echo "Setting up sources for salt..."
-  echo "$DIST_NAME"
-
-  if [ "$DIST_NAME" = "jammy" ]; then
-    export DEBIAN_FRONTEND=noninteractive  # Note: this selects the default to avoid the user prompt, another way is to find the offending library and set its restart without asking flag in debconf-set-selections to 'true'
-  fi
-
-  if [ "$DIST_ARCH" = "arm64" ]||[ "$DIST_ARCH" = "armhf "]; then
-    SALT_REPO_PREFIX="py3"
-  fi
-
-  KEY_DIR="/etc/apt/keyrings"
-  if [ ! -d "$KEY_DIR" ]; then
-     mkdir -p /etc/apt/keyrings
-  fi
-  if fgrep -q "deb [signed-by=$KEY_DIR/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/$SALT_REPO_PREFIX/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" /etc/apt/sources.list.d/eb-salt.list ;then
-     echo "INFO: Salt repo already added"
-  else
-     # Download key
-     sudo curl -fsSL -o "$KEY_DIR"/salt-archive-keyring.gpg https://repo.saltproject.io/$SALT_REPO_PREFIX/"$DIST_TYPE"/"$DIST_NUM"/"$DIST_ARCH"/$SALT_MINION_VER/salt-archive-keyring.gpg
-     # Create apt sources list file
-     echo "deb [signed-by=$KEY_DIR/salt-archive-keyring.gpg arch=$DIST_ARCH] https://repo.saltproject.io/$SALT_REPO_PREFIX/$DIST_TYPE/$DIST_NUM/$DIST_ARCH/$SALT_MINION_VER $DIST_NAME main" | sudo tee /etc/apt/sources.list.d/eb-salt.list
-  fi
+  FRP_DIST_ARCH=$(get_frp_dist_arch "$DIST_ARCH")
+  VAULT_SSH_DIST_ARCH=$(get_vault_ssh_helper_dist_arch "$DIST_ARCH")
 
   echo "Setting up sources for docker..."
   # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
@@ -324,29 +288,30 @@ install_node()
   curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o "$KEY_DIR"/docker.gpg
   echo "deb [arch=$DIST_ARCH signed-by=$KEY_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
+  # Setting up repos to access iotech packages
+  wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
+  if [ "$REPOAUTH" != "" ]; then
+    if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
+      echo "INFO: IoTech PRIVATE repo already added"
+    else
+      echo "INFO: Adding IoTech PRIVATE repo"
+      echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
+    fi
+  else
+    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
+      echo "INFO: IoTech repo already added"
+    else
+      echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
+    fi
+  fi
+
   # check if using local file for dev purposes
   echo "INFO: Installing"
   echo "FILE = ${FILE}"
+  apt-get update -qq
   if test -f "$FILE" ; then
-    apt-get update -qq
     apt-get install -y ./"$FILE"
   else
-    wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
-    if [ "$REPOAUTH" != "" ]; then
-      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
-        echo "INFO: IoTech PRIVATE repo already added"
-      else
-        echo "INFO: Adding IoTech PRIVATE repo"
-        echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
-      fi
-    else
-      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
-        echo "INFO: IoTech repo already added"
-      else
-        echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
-      fi
-    fi
-    apt-get update -qq
     apt-get install -y -qq edgebuilder-node="$VER"
   fi
 
@@ -363,12 +328,29 @@ install_node()
     usermod -aG docker "$USER"
   fi
 
-  # start docker services
+  # Install the FRP client on the node
+  echo "INFO: Installing FRP client..."
+  curl -LO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
+    tar -xf frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && cd frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH" && cp frpc /usr/local/bin/
+
+  # Install vault-ssh-helper on the node
+  echo "INFO: Installing vault-ssh-helper"
+  wget https://releases.hashicorp.com/vault-ssh-helper/"$VAULT_SSH_HELPER_VERSION"/vault-ssh-helper_"$VAULT_SSH_HELPER_VERSION"_linux_"$VAULT_SSH_DIST_ARCH".zip && \
+    unzip -q vault-ssh-helper_"$VAULT_SSH_HELPER_VERSION"_linux_"$VAULT_SSH_DIST_ARCH".zip -d /usr/local/bin && \
+    chmod 0755 /usr/local/bin/vault-ssh-helper && chown root:root /usr/local/bin/vault-ssh-helper
+  sed -i 's/^.*@include common-auth/#&/' /etc/pam.d/sshd
+  echo "auth requisite pam_exec.so quiet expose_authtok log=/var/log/vault-ssh.log /usr/local/bin/vault-ssh-helper -config=/etc/vault-ssh-helper.d/config.hcl" >> /etc/pam.d/sshd
+  echo "auth optional pam_unix.so not_set_pass use_first_pass nodelay" >> /etc/pam.d/sshd
+
+
+  # start services
   echo "INFO: Enabling docker services..."
   systemctl enable docker.service
   systemctl enable docker.socket
   systemctl is-active --quiet docker.service || systemctl start docker.service
   systemctl is-active --quiet docker.socket || systemctl start docker.socket
+  # enable builderd service
+  systemctl enable builderd.service
 
   echo "INFO: Validating installation"
   OUTPUT=$(edgebuilder-node)
@@ -424,8 +406,14 @@ install_cli_deb()
         echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech-cli.list
       fi
     fi
+  fi
 
-    sudo apt-get update -qq
+  # check if using local file for dev pur
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq
+  if test -f "$FILE" ; then
+    apt-get install -y ./$FILE
+  else
     sudo apt-get install -y -qq edgebuilder-cli="$VER"
   fi
 
@@ -480,71 +468,113 @@ install_cli_rpm()
 # Uninstall the Server components
 uninstall_server()
 {
-  # check if edgebuilder-server is currently installed
-  if dpkg -s edgebuilder-server; then
+    export DEBIAN_FRONTEND=noninteractive
+    if dpkg -s edgebuilder-server; then
 
-      sudo rm -rf /opt/edgebuilder/server/vault
-      sudo apt autoremove -qq edgebuilder-server -y
-      if (dpkg --list edgebuilder-server |grep "^rc") || !(dpkg --list edgebuilder-server); then
-        echo "Server Components Successfully Uninstalled"
+        sudo rm -rf /opt/edgebuilder/server
+#        sudo apt autoremove -qq edgebuilder-server -y
+        if (dpkg --list edgebuilder-server |grep "^rc") || ! (dpkg --list edgebuilder-server); then
+          echo "Server Components Successfully Uninstalled"
+          exit 0
+        else
+          echo "ERROR: Server Components Uninstallation Failed"
+          exit 1
+        fi
+    else
+        # package not currently installed, so exit
+        echo "edgebuilder-server NOT currently installed"
         exit 0
-      else
-        echo "ERROR: Server Components Uninstallation Failed"
-        exit 1
-      fi
-  else
-      # package not currently installed, so exit
-      echo "edgebuilder-server NOT currently installed"
-      exit 0
-  fi
+    fi
 }
 
 # Uninstall the Node components
 uninstall_node()
 {
-  # check if edgebuilder-node is currently installed
-  if dpkg -s edgebuilder-node; then
-      sudo apt-get -qq remove edgebuilder-node -y
+ # check if edgebuilder-node is currently installed
+ if dpkg -s edgebuilder-node; then
+     sudo apt-get -qq remove edgebuilder-node -y
 
-      if (dpkg --list edgebuilder-node |grep "^rc") || !(dpkg --list edgebuilder-node); then
-          echo "Node Components Successfully Uninstalled"
-          exit 0
-      else
-          echo "ERROR: Node Components Uninstallation Failed"
-          exit 1
-      fi
-  else
-      # package not currently installed, so exit
-      echo "edgebuilder-node NOT currently installed"
-      exit 0
-  fi
+     if (dpkg --list edgebuilder-node |grep "^rc") || ! (dpkg --list edgebuilder-node); then
+         echo "Node Components Successfully Uninstalled"
+         exit 0
+     else
+         echo "ERROR: Node Components Uninstallation Failed"
+         exit 1
+     fi
+ else
+     # package not currently installed, so exit
+     echo "edgebuilder-node NOT currently installed"
+     exit 0
+ fi
 }
 
-# Uninstall the CLI components DEB
+
+# Uninstall the CLI components
 uninstall_cli()
 {
-  # check if edgebuilder-cli is currently installed
-  if (dpkg-query -W -f='${Status}' edgebuilder-cli 2>/dev/null ) then
+ # check if edgebuilder-cli is currently installed
+ if (dpkg-query -W -f='${Status}' edgebuilder-cli 2>/dev/null ) then
 
-      sudo apt-get -qq remove edgebuilder-cli -y
-      if (dpkg-query -W -f='${Status}' edgebuilder-cli 2>/dev/null ) ; then
-          echo "ERROR: CLI Components Uninstallation Failed"
-          exit 1
-      else
-          echo "CLI Components Successfully Uninstalled"
-          exit 0
-      fi
-  else
-      # package not currently installed, so exit
-      echo "edgebuilder-cli NOT currently installed"
-      exit 0
-  fi
+
+     sudo apt-get -qq remove edgebuilder-cli -y
+     if (dpkg-query -W -f='${Status}' edgebuilder-cli 2>/dev/null ) ; then
+         echo "ERROR: CLI Components Uninstallation Failed"
+         exit 1
+     else
+         echo "CLI Components Successfully Uninstalled"
+         exit 0
+     fi
+ else
+     # package not currently installed, so exit
+     echo "edgebuilder-cli NOT currently installed"
+     exit 0
+ fi
 }
 
-# Main starts here:
 
-# If no options are specified
-if [ -z $COMPONENT ];then
+# Displays simple usage prompt
+display_usage()
+{
+  echo "Usage: edgebuilder-install.sh [param] [options]"
+  echo "params: server, node, cli"
+  echo "options: "
+  echo "     -r, --repo-auth : IoTech repo auth token to access packages"
+  echo "     -u, --uninstall : Uninstall the package"
+  echo "     -f, --file      : path to local package"
+}
+
+## Main starts here: ##
+
+# If no options are specified, print help
+while [ "$1" != "" ]; do
+    case $1 in
+        node | server | cli)
+            COMPONENT="$1"
+            shift
+            ;;
+        -f | --file)
+            FILE="$2"
+            shift
+            shift
+            ;;
+        -r | --repo-auth)
+            REPOAUTH="$2"
+            shift
+            shift
+            ;;
+        -u | --uninstall)
+            UNINSTALL=true
+            shift
+            ;;
+        *)
+            UNKNOWN_ARG="$1"
+            echo "$NODE_ERROR_PREFIX unknown argument '$UNKNOWN_ARG'"
+            display_usage
+            exit 3
+            ;;
+    esac
+done
+if [ -z "$COMPONENT" ];then
     display_usage
     exit 1
 fi
@@ -552,6 +582,12 @@ fi
 # If not run as sudo, exit
 if [ "$(id -u)" -ne 0 ]
   then echo "ERROR: Insufficient permissions, please run as root/sudo"
+  exit 1
+fi
+
+# if the FILE argument has been supplied and is not a valid path to a file, output an error then exit
+if [ "$FILE" != "" ] && ! [ -f $FILE ]; then
+  echo "ERROR: File $FILE does not exist."
   exit 1
 fi
 
@@ -576,11 +612,11 @@ fi
 ARCH="$(uname -m)"
 
 if "$UNINSTALL_ALL"; then
-  echo " Uninstalling All"
-  sudo ./edgebuilder-install.sh cli -u
-  sudo ./edgebuilder-install.sh node -u
-  sudo ./edgebuilder-install.sh server -u
-  exit 0
+ echo " Uninstalling All"
+ sudo ./edgebuilder-install.sh cli -u
+ sudo ./edgebuilder-install.sh node -u
+ sudo ./edgebuilder-install.sh server -u
+ exit 0
 fi
 
 # Check compatibility
@@ -614,20 +650,6 @@ elif [ "$COMPONENT" = "node" ]; then
       echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
       exit 1
     fi
-  elif [ "$ARCH" = "aarch64" ];then
-    if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ];then
-      install_node "$OS" "$ARCH"
-    else
-      echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
-      exit 1
-    fi
-  elif [ "$ARCH" = "armv7l" ];then
-    if [ "$OS" = "$RASPBIAN10" ] || [ "$OS" = "$DEBIAN11" ] || [ "$OS" = "$DEBIAN10" ]; then
-      install_node "$OS" "$ARCH"
-    else
-      echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
-      exit 1
-    fi
   else
     echo "ERROR: The Edge Builder node components are not supported on $ARCH"
     exit 1
@@ -635,10 +657,9 @@ elif [ "$COMPONENT" = "node" ]; then
 elif [ "$COMPONENT" = "cli" ]; then
 
   if "$UNINSTALL"; then
-    uninstall_cli
+      uninstall_cli
   fi
 
-  #  Do we want to remove most of this? we are only supporting the deb way now
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
     if [ -x "$(command -v apt-get)" ]; then
       install_cli_deb "$OS" "$ARCH"
