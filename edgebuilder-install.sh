@@ -1,7 +1,5 @@
 #!/bin/sh
 
-# TEST
-
 UNINSTALL=false
 UNINSTALL_ALL=false
 FILE=""
@@ -472,9 +470,9 @@ uninstall_server()
 {
     export DEBIAN_FRONTEND=noninteractive
     if dpkg -s edgebuilder-server; then
-
+        sudo apt-get -qq remove edgebuilder-server -y
         sudo rm -rf /opt/edgebuilder/server
-#        sudo apt autoremove -qq edgebuilder-server -y
+
         if (dpkg --list edgebuilder-server |grep "^rc") || ! (dpkg --list edgebuilder-server); then
           echo "Server Components Successfully Uninstalled"
           exit 0
@@ -495,6 +493,8 @@ uninstall_node()
  # check if edgebuilder-node is currently installed
  if dpkg -s edgebuilder-node; then
      sudo apt-get -qq remove edgebuilder-node -y
+
+     sudo rm ./var/lib/dpkg/info/edgebuilder-node.postrm
 
      if (dpkg --list edgebuilder-node |grep "^rc") || ! (dpkg --list edgebuilder-node); then
          echo "Node Components Successfully Uninstalled"
