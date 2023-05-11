@@ -1,7 +1,5 @@
 #!/bin/sh
 
-#TEST
-
 UNINSTALL=false
 FILE=""
 REPOAUTH=""
@@ -675,4 +673,3 @@ elif [ "$COMPONENT" = "cli" ]; then
     exit 1
   fi
 fi
-
