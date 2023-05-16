@@ -468,10 +468,11 @@ install_cli_rpm()
 uninstall_server()
 {
     export DEBIAN_FRONTEND=noninteractive
+
     # check if edgebuilder-server is currently installed
     if dpkg -s edgebuilder-server; then
-
-        sudo rm -rf /opt/edgebuilder/server
+        sudo edgebuilder-server down -v
+        sudo rm -rf /opt/edgebuilder/
         sudo apt-get -qq remove edgebuilder-server -y
         if (dpkg --list edgebuilder-server |grep "^rc") || !(dpkg --list edgebuilder-server); then
           echo "Server Components Successfully Uninstalled"
@@ -492,19 +493,20 @@ uninstall_node()
 {
    # check if edgebuilder-node is currently installed
    if dpkg -s edgebuilder-node; then
-       sudo apt-get -qq remove edgebuilder-node -y
+      sudo edgebuilder-node down -v
+      sudo apt-get -qq remove edgebuilder-node -y
 
-       if (dpkg --list edgebuilder-node |grep "^rc") || !(dpkg --list edgebuilder-node); then
+      if (dpkg --list edgebuilder-node |grep "^rc") || !(dpkg --list edgebuilder-node); then
            echo "Node Components Successfully Uninstalled"
            exit 0
-       else
+      else
            echo "ERROR: Node Components Uninstallation Failed"
            exit 1
-       fi
+      fi
    else
-       # package not currently installed, so exit
-       echo "edgebuilder-node NOT currently installed"
-       exit 0
+      # package not currently installed, so exit
+      echo "edgebuilder-node NOT currently installed"
+      exit 0
    fi
 }
 
