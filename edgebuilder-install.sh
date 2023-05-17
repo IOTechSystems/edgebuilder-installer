@@ -472,6 +472,7 @@ uninstall_server()
     # check if edgebuilder-server is currently installed
     if dpkg -s edgebuilder-server; then
         sudo edgebuilder-server down -v
+        docker-compose down --rmi all -v
         sudo rm -rf /opt/edgebuilder/
         sudo apt-get -qq remove edgebuilder-server -y
         if !(dpkg --list edgebuilder-server); then
@@ -491,12 +492,15 @@ uninstall_server()
 # Uninstall the Node components
 uninstall_node()
 {
+
    # check if edgebuilder-node is currently installed
    if dpkg -s edgebuilder-node; then
-      sudo edgebuilder-node down -v
+      sudo edgebuilder-node down
+      docker-compose down --rmi all -v
       sudo apt-get -qq remove edgebuilder-node -y
 
-      if !(dpkg --list edgebuilder-node); then
+      if !(dpkg --list edgebuilder-node) ; then
+#        || (dpkg --list edgebuilder-node|grep "^rc")
            echo "Node Components Successfully Uninstalled"
            exit 0
       else
