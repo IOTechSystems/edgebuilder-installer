@@ -474,7 +474,7 @@ uninstall_server()
         sudo edgebuilder-server down -v
         sudo rm -rf /opt/edgebuilder/
         sudo apt-get -qq remove edgebuilder-server -y
-        if (dpkg --list edgebuilder-server |grep "^rc") || !(dpkg --list edgebuilder-server); then
+        if !(dpkg --list edgebuilder-server); then
           echo "Server Components Successfully Uninstalled"
           exit 0
         else
@@ -496,7 +496,7 @@ uninstall_node()
       sudo edgebuilder-node down -v
       sudo apt-get -qq remove edgebuilder-node -y
 
-      if (dpkg --list edgebuilder-node |grep "^rc") || !(dpkg --list edgebuilder-node); then
+      if !(dpkg --list edgebuilder-node); then
            echo "Node Components Successfully Uninstalled"
            exit 0
       else
