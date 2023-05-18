@@ -497,11 +497,7 @@ if dpkg -s edgebuilder-node; then
       sudo edgebuilder-node down
       sudo edgebuilder-node uninstall
 
-      # on node – remove the binaries vault ssh helper , frp  - the edgebuilder-node script will tell us about those
-
-      # and remove the builder services & frp services ... is that for both node and services?
-
-      if !(dpkg --list edgebuilder-node) ; then
+       if !(dpkg --list edgebuilder-node) ; then
            echo "Node Components Successfully Uninstalled"
            exit 0
       else
