@@ -472,9 +472,8 @@ uninstall_server()
     # check if edgebuilder-server is currently installed
     if dpkg -s edgebuilder-server; then
         sudo edgebuilder-server down -v
-        docker-compose down --rmi all -v
-        sudo rm -rf /opt/edgebuilder/
-        sudo apt-get -qq remove edgebuilder-server -y
+        sudo edgebuilder-server uninstall
+
         if !(dpkg --list edgebuilder-server); then
           echo "Server Components Successfully Uninstalled"
           exit 0
@@ -493,14 +492,16 @@ uninstall_server()
 uninstall_node()
 {
 
-   # check if edgebuilder-node is currently installed
-   if dpkg -s edgebuilder-node; then
+if dpkg -s edgebuilder-node; then
+
       sudo edgebuilder-node down
-      docker-compose down --rmi all -v
-      sudo apt-get -qq remove edgebuilder-node -y
+      sudo edgebuilder-node uninstall
+
+      # on node – remove the binaries vault ssh helper , frp  - the edgebuilder-node script will tell us about those
+
+      # and remove the builder services & frp services ... is that for both node and services?
 
       if !(dpkg --list edgebuilder-node) ; then
-#        || (dpkg --list edgebuilder-node|grep "^rc")
            echo "Node Components Successfully Uninstalled"
            exit 0
       else
