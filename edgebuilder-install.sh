@@ -1,6 +1,5 @@
 #!/bin/sh
 
-set +x
 UNINSTALL=false
 FILE=""
 REPOAUTH=""
