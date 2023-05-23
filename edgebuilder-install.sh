@@ -1,5 +1,6 @@
 #!/bin/sh
 
+set +x
 UNINSTALL=false
 FILE=""
 REPOAUTH=""
@@ -348,10 +349,12 @@ install_node()
   fi
   sed -i 's/^.*@include common-auth//' ${pamSSHConfigFile} # Remove the common-auth line and replace with the below settings
   {
+    # IMP: DO NOT ADD/REMOVE any of the following lines
     echo "auth [success=2 default=ignore] pam_succeed_if.so user = edgebuilder"
     echo "${commonAuth}"
     echo "auth [success=ignore default=1] pam_succeed_if.so user = edgebuilder"
     echo "auth requisite pam_exec.so quiet expose_authtok log=/var/log/vault-ssh.log /usr/local/bin/vault-ssh-helper -config=/etc/vault-ssh-helper.d/config.hcl"
+    echo "auth optional pam_unix.so not_set_pass use_first_pass nodelay"
   } >> ${pamSSHConfigFile}
 
   # start services
