@@ -485,10 +485,14 @@ uninstall_server()
 
     # check if edgebuilder-server is currently installed
     if dpkg -s edgebuilder-server; then
-        sudo edgebuilder-server down -v
-        sudo edgebuilder-server uninstall
+        edgebuilder-server down -v
+        if [ "$IMAGE_PREFIX" = "dev-" ]; then
+          edgebuilder-server uninstall --dev
+        else
+          edgebuilder-server uninstall
+        fi
 
-        if !(dpkg --list edgebuilder-server); then
+        if ! (dpkg --list edgebuilder-server); then
           echo "Server Components Successfully Uninstalled"
           exit 0
         else
@@ -511,7 +515,7 @@ if dpkg -s edgebuilder-node; then
       sudo edgebuilder-node down
       sudo edgebuilder-node uninstall
 
-       if !(dpkg --list edgebuilder-node) ; then
+       if ! (dpkg --list edgebuilder-node) ; then
            echo "Node Components Successfully Uninstalled"
            exit 0
       else
@@ -558,7 +562,7 @@ display_usage()
 }
 
 ## Main starts here: ##
-
+IMAGE_PREFIX=""
 # If no options are specified, print help
 while [ "$1" != "" ]; do
     case $1 in
@@ -578,6 +582,10 @@ while [ "$1" != "" ]; do
             ;;
         -u | --uninstall)
             UNINSTALL=true
+            shift
+            ;;
+        --dev)
+            IMAGE_PREFIX="dev-"
             shift
             ;;
         *)
