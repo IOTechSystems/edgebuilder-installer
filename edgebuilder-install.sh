@@ -337,10 +337,24 @@ install_node()
   wget https://releases.hashicorp.com/vault-ssh-helper/"$VAULT_SSH_HELPER_VERSION"/vault-ssh-helper_"$VAULT_SSH_HELPER_VERSION"_linux_"$VAULT_SSH_DIST_ARCH".zip && \
     unzip -q vault-ssh-helper_"$VAULT_SSH_HELPER_VERSION"_linux_"$VAULT_SSH_DIST_ARCH".zip -d /usr/local/bin && \
     chmod 0755 /usr/local/bin/vault-ssh-helper && chown root:root /usr/local/bin/vault-ssh-helper
-  sed -i 's/^.*@include common-auth/#&/' /etc/pam.d/sshd
-  echo "auth requisite pam_exec.so quiet expose_authtok log=/var/log/vault-ssh.log /usr/local/bin/vault-ssh-helper -config=/etc/vault-ssh-helper.d/config.hcl" >> /etc/pam.d/sshd
-  echo "auth optional pam_unix.so not_set_pass use_first_pass nodelay" >> /etc/pam.d/sshd
 
+  # Reconfigure the /etc/pam.d/sshd file to apply edgebuilder user specific settings so that it can use vault OTP authentication
+  # Note: All other users should use the default or their own custom pam configurations
+  commonAuth="#@include common-auth" # We should disable common-auth for vault authentication
+  pamSSHConfigFile="/etc/pam.d/sshd"
+  if [ -f /etc/pam.d/sshd ] && [ "$(grep '@include common-auth' ${pamSSHConfigFile})" != "" ]
+  then
+    commonAuth=$(grep  '@include common-auth' ${pamSSHConfigFile})
+  fi
+  sed -i 's/^.*@include common-auth//' ${pamSSHConfigFile} # Remove the common-auth line and replace with the below settings
+  {
+    # IMP: DO NOT ADD/REMOVE any of the following lines
+    echo "auth [success=2 default=ignore] pam_succeed_if.so user = edgebuilder"
+    echo "${commonAuth}"
+    echo "auth [success=ignore default=1] pam_succeed_if.so user = edgebuilder"
+    echo "auth requisite pam_exec.so quiet expose_authtok log=/var/log/vault-ssh.log /usr/local/bin/vault-ssh-helper -config=/etc/vault-ssh-helper.d/config.hcl"
+    echo "auth optional pam_unix.so not_set_pass use_first_pass nodelay"
+  } >> ${pamSSHConfigFile}
 
   # start services
   echo "INFO: Enabling docker services..."
