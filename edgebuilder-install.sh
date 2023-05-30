@@ -512,8 +512,8 @@ uninstall_node()
 
 if dpkg -s edgebuilder-node; then
 
-      sudo edgebuilder-node down
-      sudo edgebuilder-node uninstall
+      edgebuilder-node down
+      edgebuilder-node uninstall
 
        if ! (dpkg --list edgebuilder-node) ; then
            echo "Node Components Successfully Uninstalled"
