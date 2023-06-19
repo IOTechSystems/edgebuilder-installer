@@ -14,6 +14,8 @@ DEBIAN10="Debian GNU/Linux 10"
 DEBIAN11="Debian GNU/Linux 11"
 RASPBIAN10="Raspbian GNU/Linux 10"
 
+KEYRINGS_DIR="/etc/apt/keyrings"
+
 RPM_REPO_DATA='[IoTech]
 name=IoTech
 baseurl=https://iotech.jfrog.io/artifactory/rpm-release
@@ -173,9 +175,10 @@ install_server()
   systemctl daemon-reload
   systemctl reset-failed
   # Add Docker's official GPG key
-  mkdir -p /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
-  echo "deb [arch=$DIST_ARCH signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  install -m 0755 -d "$KEYRINGS_DIR"
+  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o "$KEYRINGS_DIR"/docker.gpg
+  chmod a+r "$KEYRINGS_DIR"/docker.gpg
+  echo "deb [arch=$DIST_ARCH signed-by=$KEYRINGS_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
   if test -f "$FILE" ; then
     apt-get update -qq
@@ -284,8 +287,10 @@ install_node()
   systemctl reset-failed
 
   # Add Docker's official GPG key
-  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o "$KEY_DIR"/docker.gpg
-  echo "deb [arch=$DIST_ARCH signed-by=$KEY_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  install -m 0755 -d "$KEYRINGS_DIR"
+  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o "$KEYRINGS_DIR"/docker.gpg
+  chmod a+r "$KEYRINGS_DIR"/docker.gpg
+  echo "deb [arch=$DIST_ARCH signed-by=$KEYRINGS_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
   # Setting up repos to access iotech packages
   wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
