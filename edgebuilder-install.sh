@@ -236,21 +236,22 @@ install_node()
 {
   DIST=$1
   ARCH=$2
-  echo "INFO: Starting node ($VER) install on $DIST - $ARCH"
+  echo "INFO: Starting node ($VER) install on $DIST - $ARCH" | tee -a /tmp/edgebuilder_install.log
   if dpkg -l | grep -qw edgebuilder-node ;then
     # shellcheck disable=SC2062
     if dpkg -s edgebuilder-node | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
-      echo "INFO: Node Components ($PKG_VER) already installed, exiting"
+      echo "INFO: Node Components ($PKG_VER) already installed, exiting" | tee -a /tmp/edgebuilder_install.log
       exit 0
     fi
   fi
 
+  echo "INFO: Setting up apt and installing Edge Builder dependancies..." | tee -a /tmp/edgebuilder_install.log
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
-  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release unzip
+  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release unzip >> /tmp/edgebuilder_install.log
 
-  echo "INFO: Setting up apt"
+
   DIST_NAME=$(get_dist_name "$DIST")
   DIST_NUM=$(get_dist_num "$DIST")
   DIST_TYPE=$(get_dist_type "$DIST")
@@ -258,88 +259,90 @@ install_node()
   FRP_DIST_ARCH=$(get_frp_dist_arch "$DIST_ARCH")
   VAULT_SSH_DIST_ARCH=$(get_vault_ssh_helper_dist_arch "$DIST_ARCH")
 
-  echo "Setting up sources for docker..."
+  echo "INFO: Removing old docker installations..." | tee -a /tmp/edgebuilder_install.log
   # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
   # Remove any previous non docker-ce installs ( FIXME : This does not work for Ubuntu22.04. For Ubuntu22.04 if docker.io was installed, the user needs to uninstall docker.io and reboot before running the installer)
   # Check if the docker.service and/or docker.socket are running
-  if [ "$(systemctl is-enabled docker.service)" = "enabled" ]; then
-     echo "WARN: docker.service is enabled, disabling..."
+  if [ "$(systemctl is-enabled docker.service 2>> /tmp/edgebuilder_install.log)" = "enabled" ]; then
+     echo "WARN: docker.service is enabled, disabling..." | tee -a /tmp/edgebuilder_install.log
      systemctl disable docker.service
      if [ "$DIST_NAME" = "jammy" ]; then
-       echo "ERROR: Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder"
+       echo "ERROR: Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder" | tee -a /tmp/edgebuilder_install.log
        exit 1
      fi
   fi
 
-  if [ "$(systemctl is-enabled docker.socket)" = "enabled" ]; then
-    echo "WARN: docker.socket is enabled, disabling..."
+  if [ "$(systemctl is-enabled docker.socket 2>> /tmp/edgebuilder_install.log)" = "enabled" ]; then
+    echo "WARN: docker.socket is enabled, disabling..." | tee -a /tmp/edgebuilder_install.log
     systemctl disable docker.socket
   fi
   for i in docker docker-engine docker.io containerd runc docker-ce docker-ce-cli docker-compose-plugin docker-ce-rootless-extras; do
-    echo "INFO: Attempting to remove $i"
-    apt-get remove -y $i  # Do not pause on missing packages
+    echo "INFO: Attempting to remove $i" >> /tmp/edgebuilder_install.log
+    apt-get remove -y $i >> /tmp/edgebuilder_install.log  # Do not pause on missing packages
   done
   # Refresh systemctl services
   systemctl daemon-reload
   systemctl reset-failed
 
+   echo "INFO: Setting up sources for docker..." | tee -a /tmp/edgebuilder_install.log
   # Add Docker's official GPG key
   curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o "$KEY_DIR"/docker.gpg
   echo "deb [arch=$DIST_ARCH signed-by=$KEY_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
+  echo "INFO: Setting up sources for IOTech repos..." | tee -a /tmp/edgebuilder_install.log
   # Setting up repos to access iotech packages
   wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
   if [ "$REPOAUTH" != "" ]; then
     if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
-      echo "INFO: IoTech PRIVATE repo already added"
+      echo "INFO: IoTech PRIVATE repo already added" >> /tmp/edgebuilder_install.log
     else
-      echo "INFO: Adding IoTech PRIVATE repo"
+      echo "INFO: Adding IoTech PRIVATE repo" >> /tmp/edgebuilder_install.log
       echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
     fi
   else
     if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
-      echo "INFO: IoTech repo already added"
+      echo "INFO: IoTech repo already added" >> /tmp/edgebuilder_install.log
     else
-      echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
+      echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list > /dev/null
     fi
   fi
 
   # check if using local file for dev purposes
-  echo "INFO: Installing"
-  echo "FILE = ${FILE}"
+  echo "INFO: Installing ${FILE}"  | tee -a /tmp/edgebuilder_install.log
   apt-get update -qq
   if test -f "$FILE" ; then
-    apt-get install -y ./"$FILE"
+    apt-get install -y ./"$FILE"  >> /tmp/edgebuilder_install.log
   else
-    apt-get install -y -qq edgebuilder-node="$VER"
+    apt-get install -y -qq edgebuilder-node="$VER" >> /tmp/edgebuilder_install.log
   fi
 
-  echo "INFO: Configuring user"
+  echo "INFO: Configuring user" | tee -a /tmp/edgebuilder_install.log
   USER=$(logname)
   if [ "$USER" != "root" ]; then
     if grep -q "$USER     ALL=(ALL) NOPASSWD:ALL" /etc/sudoers ;then
-      echo "User already in sudoers"
+      echo "WARN: User already in sudoers" | tee -a /tmp/edgebuilder_install.log
     else
-      echo "Adding user \"$USER\" to sudoers"
+      echo "INFO: Adding user \"$USER\" to sudoers" | tee -a /tmp/edgebuilder_install.log
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
-    echo "Adding user \"$USER\" to docker group"
+    echo "INFO: Adding user \"$USER\" to docker group" | tee -a /tmp/edgebuilder_install.log
     usermod -aG docker "$USER"
   fi
 
   # Install the FRP client on the node
-  echo "INFO: Installing FRP client..."
-  curl -LO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
+  echo "INFO: Installing FRP client..." | tee -a /tmp/edgebuilder_install.log
+  curl -sLO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
     tar -xf frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && cd frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH" && cp frpc /usr/local/bin/
 
   # Install vault-ssh-helper on the node
-  echo "INFO: Installing vault-ssh-helper"
-  wget https://releases.hashicorp.com/vault-ssh-helper/"$VAULT_SSH_HELPER_VERSION"/vault-ssh-helper_"$VAULT_SSH_HELPER_VERSION"_linux_"$VAULT_SSH_DIST_ARCH".zip && \
+  echo "INFO: Installing vault-ssh-helper" | tee -a /tmp/edgebuilder_install.log
+  wget -q https://releases.hashicorp.com/vault-ssh-helper/"$VAULT_SSH_HELPER_VERSION"/vault-ssh-helper_"$VAULT_SSH_HELPER_VERSION"_linux_"$VAULT_SSH_DIST_ARCH".zip && \
     unzip -q vault-ssh-helper_"$VAULT_SSH_HELPER_VERSION"_linux_"$VAULT_SSH_DIST_ARCH".zip -d /usr/local/bin && \
     chmod 0755 /usr/local/bin/vault-ssh-helper && chown root:root /usr/local/bin/vault-ssh-helper
 
   # Reconfigure the /etc/pam.d/sshd file to apply edgebuilder user specific settings so that it can use vault OTP authentication
   # Note: All other users should use the default or their own custom pam configurations
+  echo "INFO: Configuring ssh..." | tee -a /tmp/edgebuilder_install.log
   commonAuth="#@include common-auth" # We should disable common-auth for vault authentication
   pamSSHConfigFile="/etc/pam.d/sshd"
   if [ -f /etc/pam.d/sshd ] && [ "$(grep '@include common-auth' ${pamSSHConfigFile})" != "" ]
@@ -357,7 +360,7 @@ install_node()
   } >> ${pamSSHConfigFile}
 
   # start services
-  echo "INFO: Enabling docker services..."
+  echo "INFO: Enabling docker services..." | tee -a /tmp/edgebuilder_install.log
   systemctl enable docker.service
   systemctl enable docker.socket
   systemctl is-active --quiet docker.service || systemctl start docker.service
@@ -365,12 +368,12 @@ install_node()
   # enable builderd service
   systemctl enable builderd.service
 
-  echo "INFO: Validating installation"
+  echo "INFO: Validating installation" | tee -a /tmp/edgebuilder_install.log
   OUTPUT=$(edgebuilder-node)
   if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: Node installation could not be validated"
+    echo "ERROR: Node installation could not be validated" | tee -a /tmp/edgebuilder_install.log
   else
-    echo "INFO: Node validation succeeded"
+    echo "INFO: Node validation succeeded" | tee -a /tmp/edgebuilder_install.log
   fi
 }
 
