@@ -278,7 +278,7 @@ install_node()
   fi
   for i in docker docker-engine docker.io containerd runc docker-ce docker-ce-cli docker-compose-plugin docker-ce-rootless-extras; do
     echo "INFO: Attempting to remove $i" >> /tmp/edgebuilder_install.log
-    apt-get remove -y $i >> /tmp/edgebuilder_install.log  # Do not pause on missing packages
+    apt-get remove -y $i >> /tmp/edgebuilder_install.log 2>&1 # Do not pause on missing packages
   done
   # Refresh systemctl services
   systemctl daemon-reload
@@ -293,14 +293,14 @@ install_node()
   # Setting up repos to access iotech packages
   wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
   if [ "$REPOAUTH" != "" ]; then
-    if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
+    if [ -e /etc/apt/sources.list.d/eb-iotech.list ] && grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
       echo "INFO: IoTech PRIVATE repo already added" >> /tmp/edgebuilder_install.log
     else
       echo "INFO: Adding IoTech PRIVATE repo" >> /tmp/edgebuilder_install.log
-      echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
+      echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list > /dev/null
     fi
   else
-    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
+    if [ -e /etc/apt/sources.list.d/eb-iotech.list ] && grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
       echo "INFO: IoTech repo already added" >> /tmp/edgebuilder_install.log
     else
       echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list > /dev/null
