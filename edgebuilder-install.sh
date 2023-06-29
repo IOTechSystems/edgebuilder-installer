@@ -682,7 +682,7 @@ elif [ "$COMPONENT" = "node" ]; then
     uninstall_node
   fi
 
-  if [ "$ARCH" = "x86_64" ]|[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
+  if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
     if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN12" ];then
       install_node "$OS" "$ARCH"
     else
