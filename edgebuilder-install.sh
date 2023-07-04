@@ -9,9 +9,9 @@ VAULT_SSH_HELPER_VERSION="0.2.1"
 
 UBUNTU2204="Ubuntu 22.04"
 UBUNTU2004="Ubuntu 20.04"
-UBUNTU1804="Ubuntu 18.04"
 DEBIAN10="Debian GNU/Linux 10"
 DEBIAN11="Debian GNU/Linux 11"
+DEBIAN12="Debian GNU/Linux 12"
 RASPBIAN10="Raspbian GNU/Linux 10"
 
 KEYRINGS_DIR="/etc/apt/keyrings"
@@ -53,10 +53,10 @@ get_dist_name()
     echo "jammy"
   elif [ "$1" = "$UBUNTU2004" ]; then
     echo "focal"
-  elif  [ "$1" = "$UBUNTU1804" ]; then
-    echo "bionic"
   elif  [ "$1" = "$DEBIAN11" ]; then
-      echo "bullseye"
+    echo "bullseye"
+  elif  [ "$1" = "$DEBIAN12" ]; then
+    echo "bookworm"
   elif  [ "$1" = "$DEBIAN10" ] || [ "$1" = "$RASPBIAN10" ]; then
     echo "buster"
   fi
@@ -69,21 +69,21 @@ get_dist_num()
     echo "22.04"
   elif [ "$1" = "$UBUNTU2004" ]; then
     echo "20.04"
-  elif  [ "$1" = "$UBUNTU1804" ]; then
-    echo "18.04"
-  elif  [ "$1" = "$DEBIAN11" ]; then
-    echo "11"
   elif  [ "$1" = "$DEBIAN10" ] || [ "$1" = "$RASPBIAN10" ]; then
     echo "10"
+  elif  [ "$1" = "$DEBIAN11" ]; then
+    echo "11"
+  elif  [ "$1" = "$DEBIAN12" ]; then
+    echo "12"
   fi
 }
 
 # Gets the basic distribution type ubuntu, debian etc
 get_dist_type()
 {
-  if [ "$1" = "$UBUNTU2204" ] || [ "$1" = "$UBUNTU2004" ] || [ "$1" = "$UBUNTU1804" ]; then
+  if [ "$1" = "$UBUNTU2204" ] || [ "$1" = "$UBUNTU2004" ]; then
     echo "ubuntu"
-  elif  [ "$1" = "$DEBIAN11" ] || [ "$1" = "$DEBIAN10" ] || [ "$1" = "$RASPBIAN10" ]; then
+  elif  [ "$1" = "$DEBIAN10" ] || [ "$1" = "$DEBIAN11" ] || [ "$1" = "$RASPBIAN12" ]; then
     echo "debian"
   fi
 
@@ -667,7 +667,7 @@ if [ "$COMPONENT" = "server" ];then
   fi
 
   if [ "$ARCH" = "x86_64" ];then
-    if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN10" ];then
+    if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN12" ];then
       install_server "$OS"
     else
       echo "ERROR: The Edge Builder server components are not supported on $OS - $ARCH"
@@ -682,8 +682,8 @@ elif [ "$COMPONENT" = "node" ]; then
     uninstall_node
   fi
 
-  if [ "$ARCH" = "x86_64" ];then
-    if [ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU1804" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN10" ];then
+  if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
+    if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN12" ];then
       install_node "$OS" "$ARCH"
     else
       echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
