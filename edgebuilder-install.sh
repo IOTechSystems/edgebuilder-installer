@@ -587,7 +587,7 @@ display_usage()
   echo "options: "
   echo "     -r, --repo-auth : IoTech repo auth token to access packages"
   echo "     -u, --uninstall : Uninstall the package"
-  echo "     -f, --file      : path to local package"
+  echo "     -f, --file      : Absolute path to local package"
 }
 
 ## Main starts here: ##
