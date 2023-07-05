@@ -262,11 +262,10 @@ install_server()
 # Args: Distribution, Architecture
 install_node()
 {
-  show_progress 1
-
   DIST=$1
   ARCH=$2
   log "Starting node ($VER) install on $DIST - $ARCH" >&3
+    show_progress 1
   if dpkg -l | grep -qw edgebuilder-node ;then
     # shellcheck disable=SC2062
     if dpkg -s edgebuilder-node | grep -qw Status.*installed ;then
