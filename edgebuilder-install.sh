@@ -347,8 +347,7 @@ install_node()
 
   USER=$(logname)
   if [ "$USER" != "root" ]; then
-    if grep -q "$USER     ALL=(ALL) NOPASSWD:ALL" /etc/sudoers ;then
-    else
+    if ! grep -q "$USER     ALL=(ALL) NOPASSWD:ALL" /etc/sudoers ;then
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
     usermod -aG docker "$USER"
