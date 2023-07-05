@@ -314,7 +314,7 @@ install_node()
   echo "FILE = ${FILE}"
   apt-get update -qq
   if test -f "$FILE" ; then
-    apt-get install -y ."$FILE"
+    apt-get install -y "$FILE"
   else
     apt-get install -y -qq edgebuilder-node="$VER"
   fi
@@ -406,7 +406,7 @@ install_cli_deb()
   echo "INFO: Installing"
   if test -f "$FILE" ; then
     apt-get update -qq
-    apt-get install -y .$FILE
+    apt-get install -y "$FILE"
   else
     echo "INFO: Setting up apt"
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
@@ -430,7 +430,7 @@ install_cli_deb()
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
   if test -f "$FILE" ; then
-    apt-get install -y .$FILE
+    apt-get install -y "$FILE"
   else
     sudo apt-get install -y -qq edgebuilder-cli="$VER"
   fi
@@ -633,7 +633,7 @@ if [ "$(id -u)" -ne 0 ]
 fi
 
 # if the FILE argument has been supplied and is not a valid path to a file, output an error then exit
-if [ "$FILE" != "" ] && ! [ -f $FILE ]; then
+if [ "$FILE" != "" ] && ! [ -f "$FILE" ]; then
   echo "ERROR: File $FILE does not exist."
   exit 1
 fi
