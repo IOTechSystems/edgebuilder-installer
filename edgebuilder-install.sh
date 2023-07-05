@@ -153,12 +153,14 @@ get_vault_ssh_helper_dist_arch()
 install_server()
 {
   DIST=$1
-  echo "INFO: Starting server ($VER) install on $DIST"
+  log "Starting server ($VER) install on $DIST"
+  show_progress 1
   if dpkg -l | grep -qw edgebuilder-server ;then
     # shellcheck disable=SC2062
     if dpkg -s edgebuilder-server | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-server | grep -i version)
-      echo "INFO: Server ($PKG_VER) already installed, exiting"
+       show_progress 40
+      log "Server ($PKG_VER) already installed, exiting" >&3
       exit 0
     fi
   fi
@@ -167,10 +169,7 @@ install_server()
   apt-get update -qq
   apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
 
-  # check if using local file for dev purposes
-  echo "INFO: Installing"
-
-  echo "INFO: Setting up apt for Edge Builder"
+  show_progress 5
   DIST_NAME=$(get_dist_name "$DIST")
   DIST_NUM=$(get_dist_num "$DIST")
   DIST_TYPE=$(get_dist_type "$DIST")
@@ -180,49 +179,44 @@ install_server()
   # Remove any previous non docker-ce installs ( FIXME : This does not work for Ubuntu22.04. For Ubuntu22.04 if docker.io was installed, the user needs to uninstall docker.io and reboot before running the installer)
   # Check if the docker.service and/or docker.socket are running
   if [ "$(systemctl is-enabled docker.service)" = "enabled" ]; then
-     echo "WARN: docker.service is enabled, disabling..."
      systemctl disable docker.service
      if [ "$DIST_NAME" = "jammy" ]; then
-        echo "ERROR: Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder"
+        show_progress 40
+        log "ERROR: Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder" >&3
         exit 1
      fi
   fi
 
   if [ "$(systemctl is-enabled docker.socket)" = "enabled" ]; then
-    echo "WARN: docker.socket is enabled, disabling..."
     systemctl disable docker.socket
   fi
   for i in docker docker-engine docker.io containerd runc; do
-    echo "INFO: Attempting to remove $i"
     apt-get remove -y $i  # Do not pause on missing packages
   done
   # Refresh systemctl services
   systemctl daemon-reload
   systemctl reset-failed
+
+  show_progress 15
   # Add Docker's official GPG key
   install -m 0755 -d "$KEYRINGS_DIR"
   curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o "$KEYRINGS_DIR"/docker.gpg
   chmod a+r "$KEYRINGS_DIR"/docker.gpg
   echo "deb [arch=$DIST_ARCH signed-by=$KEYRINGS_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
+  show_progress 18
   if test -f "$FILE" ; then
     apt-get update -qq
     apt-get install -y ./$FILE
   else
-    echo "INFO: Setting up apt for Edge Builder"
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     DIST_NAME=$(get_dist_name "$DIST")
     if [ "$REPOAUTH" != "" ]; then
-      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
-        echo "INFO: IoTech PRIVATE repo already added"
-      else
-        echo "INFO: Adding IoTech PRIVATE repo"
+      if ! grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     else
-      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
-        echo "INFO: IoTech repo already added"
-      else
+      if ! grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     fi
@@ -231,30 +225,30 @@ install_server()
     apt-get install -qq -y edgebuilder-server="$VER"
   fi
 
-  echo "INFO: Configuring user"
+  show_progress 30
+
   USER=$(logname)
   if [ "$USER" != "root" ]; then
-    if grep -q "$USER     ALL=(ALL) NOPASSWD:ALL" /etc/sudoers ;then
-      echo "User already in sudoers"
-    else
+    if ! grep -q "$USER     ALL=(ALL) NOPASSWD:ALL" /etc/sudoers ;then
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
     usermod -aG docker "$USER"
   fi
 
+  show_progress 35
   # start docker services
-  echo "INFO: Enabling docker services..."
   systemctl enable docker.service
   systemctl enable docker.socket
   systemctl is-active --quiet docker.service || systemctl start docker.service
   systemctl is-active --quiet docker.socket || systemctl start docker.socket
 
-  echo "INFO: Validating installation"
+  show_progress 40
+  log " Validating installation" >&3
   OUTPUT=$(edgebuilder-server)
   if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: Server installation could not be validated"
+    log "Server installation could not be validated" >&3
   else
-    echo "INFO: Server validation succeeded"
+    log "Server validation succeeded" >&3
   fi
 }
 
@@ -668,7 +662,7 @@ fi
 
 # if the FILE argument has been supplied and is not a valid path to a file, output an error then exit
 if [ "$FILE" != "" ] && ! [ -f $FILE ]; then
-  echo "ERROR: File $FILE does not exist."
+  log "File $FILE does not exist."  >&3
   exit 1
 fi
 
