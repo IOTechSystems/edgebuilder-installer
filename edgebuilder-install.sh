@@ -20,7 +20,7 @@ show_progress() {
   # output the bar
   printf "\rProgress : [${done_sub_bar}${todo_sub_bar}]" >&3
   if [ $total -eq $progress ]; then
-      printf " Done!\n" >&3
+      printf "\n" >&3
   fi
 }
 
@@ -481,34 +481,36 @@ install_cli_rpm()
   ARCH=$2
   PKG_MNGR=$3
 
-  echo "INFO: Starting CLI ($VER) install on $DIST - $ARCH"
+  log  "Starting CLI ($VER) install on $DIST - $ARCH" >&3
+  show_progress 1
   if rpm -qa | grep -qw edgebuilder-cli ;then
     PKG_VER=$("$PKG_MNGR" info --installed edgebuilder-cli | grep Version)
-    echo "INFO: CLI ($PKG_VER) already installed, exiting"
+    show_progress 40
+    log "CLI ($PKG_VER) already installed, exiting" >&3
     exit 0
   fi
 
   if version_under_2_6_23; then
-    echo "ERROR: Kernel version $(uname -r), requires 2.6.23 or above"
+    log "Kernel version $(uname -r), requires 2.6.23 or above" >&3
+    show_progress 40
     exit 1
   fi
 
-  echo "INFO: Setting up yum/dnf"
-  if grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/eb-iotech-cli.repo ;then
-    echo "INFO: IoTech repo already added"
-  else
+  if ! grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/eb-iotech-cli.repo ;then
     echo "$RPM_REPO_DATA" | sudo tee -a /etc/yum.repos.d/eb-iotech-cli.repo
   fi
+  show_progress 15
 
-  echo "INFO: Installing"
   "$PKG_MNGR" install -y edgebuilder-cli-"$VER"*
 
-  echo "INFO: Validating installation"
+  show_progress 40
+
+  log "Validating installation" >&3
   OUTPUT=$(edgebuilder-cli -v)
   if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: CLI installation could not be validated"
+    log "CLI installation could not be validated" >&3
   else
-    echo "INFO: CLI validation succeeded"
+    log "CLI validation succeeded" >&3
   fi
 }
 
@@ -521,26 +523,26 @@ uninstall_server()
         sudo rm -rf /opt/edgebuilder/server/vault
         # attempt autoremove
         if sudo apt autoremove -qq edgebuilder-server -y ;then
-            echo "Successfully autoremoved server components"
+            log "Successfully autoremoved server components" >&3
         else
-            echo "ERROR: Failed to autoremove Server Components"
+            log "Failed to autoremove Server Components" >&3
             exit 1
         fi
 
         # attempt purge
         if sudo apt-get -qq purge edgebuilder-server -y ;then
-            echo "Successfully purged Server Components"
+            log "Successfully purged Server Components" >&3
         else
-            echo "ERROR: Failed to purge Server Components"
+            log "Failed to purge Server Components" >&3
             exit 1
         fi
 
         # Successfully installed, exit
-        echo "Server Components Uninstalled"
+        log "Server Components Uninstalled" >&3
         exit 0
     else
         # package not currently installed, so exit
-        echo "edgebuilder-server NOT currently installed"
+        log "edgebuilder-server NOT currently installed" >&3
         exit 0
     fi
 }
@@ -552,26 +554,26 @@ uninstall_node()
 
       # attempt autoremove
       if sudo apt autoremove -qq edgebuilder-node -y ;then
-          echo "Successfully autoremoved node components"
+          log "Successfully autoremoved node components" >&3
       else
-          echo "ERROR: Failed to autoremove node components"
+          log "Failed to autoremove node components" >&3
           exit 1
       fi
 
       # attempt purge
       if sudo apt-get purge -qq edgebuilder-node -y ;then
-          echo "Successfully purged Node Components"
+          log  "Successfully purged Node Components" >&3
       else
-          echo "ERROR: Failed to purge Node Components"
+          log "Failed to purge Node Components" >&3
           exit 1
       fi
 
       # Successfully installed, exit
-      echo "Node Components Uninstalled"
+      log "Node Components Uninstalled" >&3
       exit 0
   else
       # package not currently installed, so exit
-      echo "edgebuilder-node NOT currently installed"
+      log "edgebuilder-node NOT currently installed" >&3
       exit 0
   fi
 }
@@ -584,26 +586,26 @@ uninstall_cli()
 
       # attempt autoremove
       if sudo apt autoremove -qq edgebuilder-cli -y ;then
-          echo "Successfully autoremoved CLI"
+          log "Successfully autoremoved CLI" >&3
       else
-          echo "ERROR: Failed to autoremove CLI"
+          log "Failed to autoremove CLI" >&3
           exit 1
       fi
 
       # attempt purge
       if sudo apt-get -qq purge edgebuilder-cli -y ;then
-          echo "Successfully purged CLI"
+          log "Successfully purged CLI" >&3
       else
-          echo "ERROR: Failed to purge CLI"
+          log "Failed to purge CLI" >&3
           exit 1
       fi
 
       # Successfully installed, exit
-      echo "CLI Components Uninstalled"
+      log "CLI Components Uninstalled" >&3
       exit 0
   else
       # package not currently installed, so exit
-      echo "edgebuilder-cli NOT currently installed"
+      log "edgebuilder-cli NOT currently installed" >&3
       exit 0
   fi
 }
