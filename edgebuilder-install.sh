@@ -270,8 +270,8 @@ install_node()
     # shellcheck disable=SC2062
     if dpkg -s edgebuilder-node | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
-      log "Node Components ($PKG_VER) already installed, exiting" >&3
       show_progress 40
+      log "Node Components ($PKG_VER) already installed, exiting" >&3
       exit 0
     fi
   fi
@@ -297,9 +297,9 @@ install_node()
   if [ "$(systemctl is-enabled docker.service)" = "enabled" ]; then
      systemctl disable docker.service
      if [ "$DIST_NAME" = "jammy" ]; then
-       log "Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder" >&3
-       show_progress 40
-       exit 1
+        show_progress 40
+        log "Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder" >&3
+        exit 1
      fi
   fi
 
@@ -422,16 +422,16 @@ install_cli_deb()
     # shellcheck disable=SC2062
     if dpkg -s edgebuilder-cli | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
-      log "CLI ($PKG_VER) already installed, exiting"  >&3
       show_progress 40
+      log "CLI ($PKG_VER) already installed, exiting"  >&3
       exit 0
     fi
   fi
    show_progress 2
 
   if version_under_2_6_23; then
-    log "Kernel version $(uname -r), requires 2.6.23 or above"  >&3
     show_progress 40
+    log "Kernel version $(uname -r), requires 2.6.23 or above"  >&3
     exit 1
   fi
   show_progress 5
