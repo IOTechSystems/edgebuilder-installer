@@ -1,4 +1,29 @@
 #!/bin/sh
+LOGFILE=eb-installer.log
+log() {
+    echo "[$(date +"%T-%D")]" "$@"
+}
+exec 3>&1 1>"$LOGFILE" 2>&1
+set -x
+
+# Progress bar, used to indicate progress from 0 to 40
+bar_size=40
+bar_char_done="#"
+bar_char_todo="-"
+total=40
+show_progress() {
+  progress="$1"
+  todo=$((total - progress))
+  # build the done and todo sub-bars
+  done_sub_bar=$(printf "%${progress}s" | tr " " "${bar_char_done}")
+  todo_sub_bar=$(printf "%${todo}s" | tr " " "${bar_char_todo}")
+  # output the bar
+  printf "\rProgress : [${done_sub_bar}${todo_sub_bar}]" >&3
+  if [ $total -eq $progress ]; then
+      printf "\n" >&3
+  fi
+}
+
 
 UNINSTALL=false
 FILE=""
@@ -128,12 +153,14 @@ get_vault_ssh_helper_dist_arch()
 install_server()
 {
   DIST=$1
-  echo "INFO: Starting server ($VER) install on $DIST"
+  log "Starting server ($VER) install on $DIST"
+  show_progress 1
   if dpkg -l | grep -qw edgebuilder-server ;then
     # shellcheck disable=SC2062
     if dpkg -s edgebuilder-server | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-server | grep -i version)
-      echo "INFO: Server ($PKG_VER) already installed, exiting"
+       show_progress 40
+      log "Server ($PKG_VER) already installed, exiting" >&3
       exit 0
     fi
   fi
@@ -142,10 +169,7 @@ install_server()
   apt-get update -qq
   apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
 
-  # check if using local file for dev purposes
-  echo "INFO: Installing"
-
-  echo "INFO: Setting up apt for Edge Builder"
+  show_progress 5
   DIST_NAME=$(get_dist_name "$DIST")
   DIST_NUM=$(get_dist_num "$DIST")
   DIST_TYPE=$(get_dist_type "$DIST")
@@ -155,49 +179,44 @@ install_server()
   # Remove any previous non docker-ce installs ( FIXME : This does not work for Ubuntu22.04. For Ubuntu22.04 if docker.io was installed, the user needs to uninstall docker.io and reboot before running the installer)
   # Check if the docker.service and/or docker.socket are running
   if [ "$(systemctl is-enabled docker.service)" = "enabled" ]; then
-     echo "WARN: docker.service is enabled, disabling..."
      systemctl disable docker.service
      if [ "$DIST_NAME" = "jammy" ]; then
-        echo "ERROR: Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder"
+        show_progress 40
+        log "ERROR: Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder" >&3
         exit 1
      fi
   fi
 
   if [ "$(systemctl is-enabled docker.socket)" = "enabled" ]; then
-    echo "WARN: docker.socket is enabled, disabling..."
     systemctl disable docker.socket
   fi
   for i in docker docker-engine docker.io containerd runc; do
-    echo "INFO: Attempting to remove $i"
     apt-get remove -y $i  # Do not pause on missing packages
   done
   # Refresh systemctl services
   systemctl daemon-reload
   systemctl reset-failed
+
+  show_progress 15
   # Add Docker's official GPG key
   install -m 0755 -d "$KEYRINGS_DIR"
   curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o "$KEYRINGS_DIR"/docker.gpg
   chmod a+r "$KEYRINGS_DIR"/docker.gpg
   echo "deb [arch=$DIST_ARCH signed-by=$KEYRINGS_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
+  show_progress 18
   if test -f "$FILE" ; then
     apt-get update -qq
     apt-get install -y "$FILE"
   else
-    echo "INFO: Setting up apt for Edge Builder"
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     DIST_NAME=$(get_dist_name "$DIST")
     if [ "$REPOAUTH" != "" ]; then
-      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
-        echo "INFO: IoTech PRIVATE repo already added"
-      else
-        echo "INFO: Adding IoTech PRIVATE repo"
+      if ! grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     else
-      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
-        echo "INFO: IoTech repo already added"
-      else
+      if ! grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
         echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
       fi
     fi
@@ -206,30 +225,30 @@ install_server()
     apt-get install -qq -y edgebuilder-server="$VER"
   fi
 
-  echo "INFO: Configuring user"
+  show_progress 30
+
   USER=$(logname)
   if [ "$USER" != "root" ]; then
-    if grep -q "$USER     ALL=(ALL) NOPASSWD:ALL" /etc/sudoers ;then
-      echo "User already in sudoers"
-    else
+    if ! grep -q "$USER     ALL=(ALL) NOPASSWD:ALL" /etc/sudoers ;then
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
     usermod -aG docker "$USER"
   fi
 
+  show_progress 35
   # start docker services
-  echo "INFO: Enabling docker services..."
   systemctl enable docker.service
   systemctl enable docker.socket
   systemctl is-active --quiet docker.service || systemctl start docker.service
   systemctl is-active --quiet docker.socket || systemctl start docker.socket
 
-  echo "INFO: Validating installation"
+  show_progress 40
+  log " Validating installation" >&3
   OUTPUT=$(edgebuilder-server)
   if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: Server installation could not be validated"
+    log "Server installation could not be validated" >&3
   else
-    echo "INFO: Server validation succeeded"
+    log "Server validation succeeded" >&3
   fi
 }
 
@@ -239,21 +258,26 @@ install_node()
 {
   DIST=$1
   ARCH=$2
-  echo "INFO: Starting node ($VER) install on $DIST - $ARCH"
+  log "Starting node ($VER) install on $DIST - $ARCH" >&3
+    show_progress 1
   if dpkg -l | grep -qw edgebuilder-node ;then
     # shellcheck disable=SC2062
     if dpkg -s edgebuilder-node | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
-      echo "INFO: Node Components ($PKG_VER) already installed, exiting"
+      show_progress 40
+      log "Node Components ($PKG_VER) already installed, exiting" >&3
       exit 0
     fi
   fi
+
+  show_progress 2
 
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
   apt-get install -y -qq wget ca-certificates curl gnupg lsb-release unzip
 
-  echo "INFO: Setting up apt"
+  show_progress 5
+
   DIST_NAME=$(get_dist_name "$DIST")
   DIST_NUM=$(get_dist_num "$DIST")
   DIST_TYPE=$(get_dist_type "$DIST")
@@ -261,30 +285,29 @@ install_node()
   FRP_DIST_ARCH=$(get_frp_dist_arch "$DIST_ARCH")
   VAULT_SSH_DIST_ARCH=$(get_vault_ssh_helper_dist_arch "$DIST_ARCH")
 
-  echo "Setting up sources for docker..."
   # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
   # Remove any previous non docker-ce installs ( FIXME : This does not work for Ubuntu22.04. For Ubuntu22.04 if docker.io was installed, the user needs to uninstall docker.io and reboot before running the installer)
   # Check if the docker.service and/or docker.socket are running
   if [ "$(systemctl is-enabled docker.service)" = "enabled" ]; then
-     echo "WARN: docker.service is enabled, disabling..."
      systemctl disable docker.service
      if [ "$DIST_NAME" = "jammy" ]; then
-       echo "ERROR: Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder"
-       exit 1
+        show_progress 40
+        log "Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder" >&3
+        exit 1
      fi
   fi
 
   if [ "$(systemctl is-enabled docker.socket)" = "enabled" ]; then
-    echo "WARN: docker.socket is enabled, disabling..."
     systemctl disable docker.socket
   fi
   for i in docker docker-engine docker.io containerd runc docker-ce docker-ce-cli docker-compose-plugin docker-ce-rootless-extras; do
-    echo "INFO: Attempting to remove $i"
     apt-get remove -y $i  # Do not pause on missing packages
   done
   # Refresh systemctl services
   systemctl daemon-reload
   systemctl reset-failed
+
+  show_progress 18
 
   # Add Docker's official GPG key
   install -m 0755 -d "$KEYRINGS_DIR"
@@ -295,22 +318,18 @@ install_node()
   # Setting up repos to access iotech packages
   wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
   if [ "$REPOAUTH" != "" ]; then
-    if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
-      echo "INFO: IoTech PRIVATE repo already added"
-    else
-      echo "INFO: Adding IoTech PRIVATE repo"
+    if ! grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
       echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
     fi
   else
-    if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
-      echo "INFO: IoTech repo already added"
-    else
+    if ! grep -q "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" /etc/apt/sources.list.d/eb-iotech.list ;then
       echo "deb https://iotech.jfrog.io/artifactory/debian-release $DIST_NAME main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech.list
     fi
   fi
 
+  show_progress 28
+
   # check if using local file for dev purposes
-  echo "INFO: Installing"
   echo "FILE = ${FILE}"
   apt-get update -qq
   if test -f "$FILE" ; then
@@ -319,29 +338,30 @@ install_node()
     apt-get install -y -qq edgebuilder-node="$VER"
   fi
 
-  echo "INFO: Configuring user"
+  show_progress 28
+
   USER=$(logname)
   if [ "$USER" != "root" ]; then
-    if grep -q "$USER     ALL=(ALL) NOPASSWD:ALL" /etc/sudoers ;then
-      echo "User already in sudoers"
-    else
-      echo "Adding user \"$USER\" to sudoers"
+    if ! grep -q "$USER     ALL=(ALL) NOPASSWD:ALL" /etc/sudoers ;then
       echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
     fi
-    echo "Adding user \"$USER\" to docker group"
     usermod -aG docker "$USER"
   fi
 
+    show_progress 30
+
   # Install the FRP client on the node
-  echo "INFO: Installing FRP client..."
-  curl -LO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
+    curl -LO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
     tar -xf frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && cd frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH" && cp frpc /usr/local/bin/
 
+    show_progress 32
+
   # Install vault-ssh-helper on the node
-  echo "INFO: Installing vault-ssh-helper"
   wget https://releases.hashicorp.com/vault-ssh-helper/"$VAULT_SSH_HELPER_VERSION"/vault-ssh-helper_"$VAULT_SSH_HELPER_VERSION"_linux_"$VAULT_SSH_DIST_ARCH".zip && \
     unzip -q vault-ssh-helper_"$VAULT_SSH_HELPER_VERSION"_linux_"$VAULT_SSH_DIST_ARCH".zip -d /usr/local/bin && \
     chmod 0755 /usr/local/bin/vault-ssh-helper && chown root:root /usr/local/bin/vault-ssh-helper
+
+    show_progress 35
 
   # Reconfigure the /etc/pam.d/sshd file to apply edgebuilder user specific settings so that it can use vault OTP authentication
   # Note: All other users should use the default or their own custom pam configurations
@@ -361,8 +381,9 @@ install_node()
     echo "auth optional pam_unix.so not_set_pass use_first_pass nodelay"
   } >> ${pamSSHConfigFile}
 
+  show_progress 40
   # start services
-  echo "INFO: Enabling docker services..."
+  log "Enabling docker services..." >&3
   systemctl enable docker.service
   systemctl enable docker.socket
   systemctl is-active --quiet docker.service || systemctl start docker.service
@@ -370,12 +391,12 @@ install_node()
   # enable builderd service
   systemctl enable builderd.service
 
-  echo "INFO: Validating installation"
+  log "Validating installation" >&3
   OUTPUT=$(edgebuilder-node)
   if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: Node installation could not be validated"
+    log "Node installation could not be validated" >&3
   else
-    echo "INFO: Node validation succeeded"
+    log "Node validation succeeded" >&3
   fi
 }
 
@@ -383,48 +404,52 @@ install_node()
 # Args: Distribution, Architecture
 install_cli_deb()
 {
+
   DIST=$1
   ARCH=$2
   # shellcheck disable=SC2062
-  echo "INFO: Starting CLI ($VER) install on $DIST - $ARCH"
+  log "Starting CLI ($VER) install on $DIST - $ARCH"  >&3
+
+  show_progress 1
 
   if dpkg -l | grep -qw edgebuilder-cli ;then
     # shellcheck disable=SC2062
     if dpkg -s edgebuilder-cli | grep -qw Status.*installed ;then
       PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
-      echo "INFO: CLI ($PKG_VER) already installed, exiting"
+      show_progress 40
+      log "CLI ($PKG_VER) already installed, exiting"  >&3
       exit 0
     fi
   fi
+   show_progress 2
 
   if version_under_2_6_23; then
-    echo "ERROR: Kernel version $(uname -r), requires 2.6.23 or above"
+    show_progress 40
+    log "Kernel version $(uname -r), requires 2.6.23 or above"  >&3
     exit 1
   fi
-
+  show_progress 5
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq
+  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
+  show_progress 15
   # check if using local file for dev purposes
-  echo "INFO: Installing"
   if test -f "$FILE" ; then
     apt-get update -qq
     apt-get install -y "$FILE"
   else
-    echo "INFO: Setting up apt"
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     if [ "$REPOAUTH" != "" ]; then
-      if grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" /etc/apt/sources.list.d/eb-iotech-cli.list ;then
-        echo "INFO: IoTech PRIVATE repo already added"
-      else
-        echo "INFO: Adding IoTech PRIVATE repo"
+      if ! grep -q "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" /etc/apt/sources.list.d/eb-iotech-cli.list ;then
         echo "deb https://$REPOAUTH@iotech.jfrog.io/artifactory/debian-dev all main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech-cli.list
       fi
     else
-      if grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/eb-iotech-cli.list ;then
-        echo "INFO: IoTech repo already added"
-      else
+      if ! grep -q "deb https://iotech.jfrog.io/artifactory/debian-release all main" /etc/apt/sources.list.d/eb-iotech-cli.list ;then
         echo "deb https://iotech.jfrog.io/artifactory/debian-release all main" | sudo tee -a /etc/apt/sources.list.d/eb-iotech-cli.list
       fi
     fi
   fi
+  show_progress 25
 
   # check if using local file for dev pur
   export DEBIAN_FRONTEND=noninteractive
@@ -435,12 +460,16 @@ install_cli_deb()
     sudo apt-get install -y -qq edgebuilder-cli="$VER"
   fi
 
-  echo "INFO: Validating installation"
+  show_progress 40
+
+  log "Validating installation"  >&3
   OUTPUT=$(edgebuilder-cli -v)
   if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: CLI installation could not be validated"
+    log "CLI installation could not be validated"  >&3
+    show_progress 40
+    exit 1
   else
-    echo "INFO: CLI validation succeeded"
+    log "CLI validation succeeded"  >&3
   fi
 }
 
@@ -452,34 +481,36 @@ install_cli_rpm()
   ARCH=$2
   PKG_MNGR=$3
 
-  echo "INFO: Starting CLI ($VER) install on $DIST - $ARCH"
+  log  "Starting CLI ($VER) install on $DIST - $ARCH" >&3
+  show_progress 1
   if rpm -qa | grep -qw edgebuilder-cli ;then
     PKG_VER=$("$PKG_MNGR" info --installed edgebuilder-cli | grep Version)
-    echo "INFO: CLI ($PKG_VER) already installed, exiting"
+    show_progress 40
+    log "CLI ($PKG_VER) already installed, exiting" >&3
     exit 0
   fi
 
   if version_under_2_6_23; then
-    echo "ERROR: Kernel version $(uname -r), requires 2.6.23 or above"
+    log "Kernel version $(uname -r), requires 2.6.23 or above" >&3
+    show_progress 40
     exit 1
   fi
 
-  echo "INFO: Setting up yum/dnf"
-  if grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/eb-iotech-cli.repo ;then
-    echo "INFO: IoTech repo already added"
-  else
+  if ! grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/eb-iotech-cli.repo ;then
     echo "$RPM_REPO_DATA" | sudo tee -a /etc/yum.repos.d/eb-iotech-cli.repo
   fi
+  show_progress 15
 
-  echo "INFO: Installing"
   "$PKG_MNGR" install -y edgebuilder-cli-"$VER"*
 
-  echo "INFO: Validating installation"
+  show_progress 40
+
+  log "Validating installation" >&3
   OUTPUT=$(edgebuilder-cli -v)
   if [ "$OUTPUT" = "" ]; then
-    echo "ERROR: CLI installation could not be validated"
+    log "CLI installation could not be validated" >&3
   else
-    echo "INFO: CLI validation succeeded"
+    log "CLI validation succeeded" >&3
   fi
 }
 
@@ -492,26 +523,26 @@ uninstall_server()
         sudo rm -rf /opt/edgebuilder/server/vault
         # attempt autoremove
         if sudo apt autoremove -qq edgebuilder-server -y ;then
-            echo "Successfully autoremoved server components"
+            log "Successfully autoremoved server components" >&3
         else
-            echo "ERROR: Failed to autoremove Server Components"
+            log "Failed to autoremove Server Components" >&3
             exit 1
         fi
 
         # attempt purge
         if sudo apt-get -qq purge edgebuilder-server -y ;then
-            echo "Successfully purged Server Components"
+            log "Successfully purged Server Components" >&3
         else
-            echo "ERROR: Failed to purge Server Components"
+            log "Failed to purge Server Components" >&3
             exit 1
         fi
 
         # Successfully installed, exit
-        echo "Server Components Uninstalled"
+        log "Server Components Uninstalled" >&3
         exit 0
     else
         # package not currently installed, so exit
-        echo "edgebuilder-server NOT currently installed"
+        log "edgebuilder-server NOT currently installed" >&3
         exit 0
     fi
 }
@@ -523,26 +554,26 @@ uninstall_node()
 
       # attempt autoremove
       if sudo apt autoremove -qq edgebuilder-node -y ;then
-          echo "Successfully autoremoved node components"
+          log "Successfully autoremoved node components" >&3
       else
-          echo "ERROR: Failed to autoremove node components"
+          log "Failed to autoremove node components" >&3
           exit 1
       fi
 
       # attempt purge
       if sudo apt-get purge -qq edgebuilder-node -y ;then
-          echo "Successfully purged Node Components"
+          log  "Successfully purged Node Components" >&3
       else
-          echo "ERROR: Failed to purge Node Components"
+          log "Failed to purge Node Components" >&3
           exit 1
       fi
 
       # Successfully installed, exit
-      echo "Node Components Uninstalled"
+      log "Node Components Uninstalled" >&3
       exit 0
   else
       # package not currently installed, so exit
-      echo "edgebuilder-node NOT currently installed"
+      log "edgebuilder-node NOT currently installed" >&3
       exit 0
   fi
 }
@@ -555,26 +586,26 @@ uninstall_cli()
 
       # attempt autoremove
       if sudo apt autoremove -qq edgebuilder-cli -y ;then
-          echo "Successfully autoremoved CLI"
+          log "Successfully autoremoved CLI" >&3
       else
-          echo "ERROR: Failed to autoremove CLI"
+          log "Failed to autoremove CLI" >&3
           exit 1
       fi
 
       # attempt purge
       if sudo apt-get -qq purge edgebuilder-cli -y ;then
-          echo "Successfully purged CLI"
+          log "Successfully purged CLI" >&3
       else
-          echo "ERROR: Failed to purge CLI"
+          log "Failed to purge CLI" >&3
           exit 1
       fi
 
       # Successfully installed, exit
-      echo "CLI Components Uninstalled"
+      log "CLI Components Uninstalled" >&3
       exit 0
   else
       # package not currently installed, so exit
-      echo "edgebuilder-cli NOT currently installed"
+      log "edgebuilder-cli NOT currently installed" >&3
       exit 0
   fi
 }
@@ -591,7 +622,6 @@ display_usage()
 }
 
 ## Main starts here: ##
-
 # If no options are specified, print help
 while [ "$1" != "" ]; do
     case $1 in
@@ -628,17 +658,17 @@ fi
 
 # If not run as sudo, exit
 if [ "$(id -u)" -ne 0 ]
-  then echo "ERROR: Insufficient permissions, please run as root/sudo"
+  then log "Insufficient permissions, please run as root/sudo" >&3
   exit 1
 fi
 
 # if the FILE argument has been supplied and is not a valid path to a file, output an error then exit
 if [ "$FILE" != "" ] && ! [ -f "$FILE" ]; then
-  echo "ERROR: File $FILE does not exist."
+  log "File $FILE does not exist."  >&3
   exit 1
 fi
 
-echo "INFO: Detecting OS and Architecture"
+log "Detecting OS and Architecture"  >&3
 
 # Detect OS
 if [ -f /etc/os-release ]; then
@@ -659,7 +689,7 @@ fi
 ARCH="$(uname -m)"
 
 # Check compatibility
-echo "INFO: Checking compatibility"
+log "Checking compatibility"  >&3
 if [ "$COMPONENT" = "server" ];then
 
   if "$UNINSTALL"; then
@@ -670,10 +700,10 @@ if [ "$COMPONENT" = "server" ];then
     if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN12" ];then
       install_server "$OS"
     else
-      echo "ERROR: The Edge Builder server components are not supported on $OS - $ARCH"
+      log "The Edge Builder server components are not supported on $OS - $ARCH"  >&3
     fi
   else
-    echo "ERROR: The Edge Builder server components are not supported on $ARCH"
+    log "The Edge Builder server components are not supported on $ARCH"  >&3
     exit 1
   fi
 elif [ "$COMPONENT" = "node" ]; then
@@ -686,11 +716,11 @@ elif [ "$COMPONENT" = "node" ]; then
     if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN12" ];then
       install_node "$OS" "$ARCH"
     else
-      echo "ERROR: The Edge Builder node components are not supported on $OS - $ARCH"
+      log "The Edge Builder node components are not supported on $OS - $ARCH"  >&3
       exit 1
     fi
   else
-    echo "ERROR: The Edge Builder node components are not supported on $ARCH"
+    log "The Edge Builder node components are not supported on $ARCH"  >&3
     exit 1
   fi
 elif [ "$COMPONENT" = "cli" ]; then
@@ -707,11 +737,11 @@ elif [ "$COMPONENT" = "cli" ]; then
     elif [ -x "$(command -v yum)" ]; then
       install_cli_rpm "$OS" "$ARCH" "yum"
     else
-      echo "ERROR: The Edge Builder CLI cannot be installed as no suitable package manager has been found (apt, dnf or yum)"
+      log "The Edge Builder CLI cannot be installed as no suitable package manager has been found (apt, dnf or yum)"  >&3
       exit 1
     fi
   else
-    echo "ERROR: The Edge Builder CLI is not supported on $ARCH"
+    log "The Edge Builder CLI is not supported on $ARCH"  >&3
     exit 1
   fi
 fi
