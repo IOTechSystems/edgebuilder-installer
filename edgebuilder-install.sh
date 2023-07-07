@@ -626,7 +626,7 @@ display_usage()
   echo "     -r, --repo-auth          : IoTech repo auth token to access packages"
   echo "     -u, --uninstall          : Uninstall the package"
   echo "     -f, --file               : Absolute path to local package"
-  echo "     -e, --offline-provision  : Enable offline node provision"
+  echo "     --offline-provision      : Enable offline node provision"
 }
 
 ## Main starts here: ##
@@ -651,7 +651,7 @@ while [ "$1" != "" ]; do
             UNINSTALL=true
             shift
             ;;
-        -e | --offline-provision)
+        --offline-provision)
             OFFLINE_PROVISION=true
             shift
             ;;
