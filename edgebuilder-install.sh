@@ -27,6 +27,7 @@ show_progress() {
 
 UNINSTALL=false
 FILE=""
+OFFLINE_PROVISION=false
 REPOAUTH=""
 VER="2.2.0.dev"
 FRP_VERSION="0.47.0"
@@ -258,6 +259,7 @@ install_node()
 {
   DIST=$1
   ARCH=$2
+
   log "Starting node ($VER) install on $DIST - $ARCH" >&3
     show_progress 1
   if dpkg -l | grep -qw edgebuilder-node ;then
@@ -390,6 +392,11 @@ install_node()
   systemctl is-active --quiet docker.socket || systemctl start docker.socket
   # enable builderd service
   systemctl enable builderd.service
+  # enable eb-node service for offline node provision
+  if [ "$OFFLINE_PROVISION" ]; then
+    systemctl enable eb-node.service
+    systemctl start eb-node.service
+  fi
 
   log "Validating installation" >&3
   OUTPUT=$(edgebuilder-node)
@@ -616,9 +623,10 @@ display_usage()
   echo "Usage: edgebuilder-install.sh [param] [options]"
   echo "params: server, node, cli"
   echo "options: "
-  echo "     -r, --repo-auth : IoTech repo auth token to access packages"
-  echo "     -u, --uninstall : Uninstall the package"
-  echo "     -f, --file      : Absolute path to local package"
+  echo "     -r, --repo-auth          : IoTech repo auth token to access packages"
+  echo "     -u, --uninstall          : Uninstall the package"
+  echo "     -f, --file               : Absolute path to local package"
+  echo "     -e, --offline-provision  : Enable offline node provision"
 }
 
 ## Main starts here: ##
@@ -641,6 +649,10 @@ while [ "$1" != "" ]; do
             ;;
         -u | --uninstall)
             UNINSTALL=true
+            shift
+            ;;
+        -e | --offline-provision)
+            OFFLINE_PROVISION=true
             shift
             ;;
         *)
