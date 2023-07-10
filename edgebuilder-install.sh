@@ -27,6 +27,7 @@ show_progress() {
 
 UNINSTALL=false
 FILE=""
+OFFLINE_PROVISION=false
 REPOAUTH=""
 VER="2.2.0.dev"
 FRP_VERSION="0.47.0"
@@ -207,7 +208,7 @@ install_server()
   show_progress 18
   if test -f "$FILE" ; then
     apt-get update -qq
-    apt-get install -y ./$FILE
+    apt-get install -y "$FILE"
   else
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     DIST_NAME=$(get_dist_name "$DIST")
@@ -258,6 +259,7 @@ install_node()
 {
   DIST=$1
   ARCH=$2
+
   log "Starting node ($VER) install on $DIST - $ARCH" >&3
     show_progress 1
   if dpkg -l | grep -qw edgebuilder-node ;then
@@ -333,7 +335,7 @@ install_node()
   echo "FILE = ${FILE}"
   apt-get update -qq
   if test -f "$FILE" ; then
-    apt-get install -y ./"$FILE"
+    apt-get install -y "$FILE"
   else
     apt-get install -y -qq edgebuilder-node="$VER"
   fi
@@ -390,6 +392,11 @@ install_node()
   systemctl is-active --quiet docker.socket || systemctl start docker.socket
   # enable builderd service
   systemctl enable builderd.service
+  # enable eb-node service for offline node provision
+  if [ "$OFFLINE_PROVISION" ]; then
+    systemctl enable eb-node.service
+    systemctl start eb-node.service
+  fi
 
   log "Validating installation" >&3
   OUTPUT=$(edgebuilder-node)
@@ -404,7 +411,7 @@ install_node()
 # Args: Distribution, Architecture
 install_cli_deb()
 {
-  
+
   DIST=$1
   ARCH=$2
   # shellcheck disable=SC2062
@@ -433,10 +440,10 @@ install_cli_deb()
   apt-get update -qq
   apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
   show_progress 15
-  # check if using local file for dev purposes  
+  # check if using local file for dev purposes
   if test -f "$FILE" ; then
     apt-get update -qq
-    apt-get install -y ./$FILE
+    apt-get install -y "$FILE"
   else
     wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
     if [ "$REPOAUTH" != "" ]; then
@@ -455,7 +462,7 @@ install_cli_deb()
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
   if test -f "$FILE" ; then
-    apt-get install -y ./$FILE
+    apt-get install -y "$FILE"
   else
     sudo apt-get install -y -qq edgebuilder-cli="$VER"
   fi
@@ -616,9 +623,10 @@ display_usage()
   echo "Usage: edgebuilder-install.sh [param] [options]"
   echo "params: server, node, cli"
   echo "options: "
-  echo "     -r, --repo-auth : IoTech repo auth token to access packages"
-  echo "     -u, --uninstall : Uninstall the package"
-  echo "     -f, --file      : path to local package"
+  echo "     -r, --repo-auth          : IoTech repo auth token to access packages"
+  echo "     -u, --uninstall          : Uninstall the package"
+  echo "     -f, --file               : Absolute path to local package"
+  echo "     --offline-provision      : Enable offline node provision"
 }
 
 ## Main starts here: ##
@@ -643,6 +651,10 @@ while [ "$1" != "" ]; do
             UNINSTALL=true
             shift
             ;;
+        --offline-provision)
+            OFFLINE_PROVISION=true
+            shift
+            ;;
         *)
             UNKNOWN_ARG="$1"
             echo "$NODE_ERROR_PREFIX unknown argument '$UNKNOWN_ARG'"
@@ -663,7 +675,7 @@ if [ "$(id -u)" -ne 0 ]
 fi
 
 # if the FILE argument has been supplied and is not a valid path to a file, output an error then exit
-if [ "$FILE" != "" ] && ! [ -f $FILE ]; then
+if [ "$FILE" != "" ] && ! [ -f "$FILE" ]; then
   log "File $FILE does not exist."  >&3
   exit 1
 fi
