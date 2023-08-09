@@ -31,7 +31,6 @@ OFFLINE_PROVISION=false
 REPOAUTH=""
 VER="2.2.0.dev"
 FRP_VERSION="0.47.0"
-VAULT_SSH_HELPER_VERSION="0.2.1"
 
 UBUNTU2204="Ubuntu 22.04"
 UBUNTU2004="Ubuntu 20.04"
@@ -136,18 +135,6 @@ get_frp_dist_arch()
     echo "$1"
   fi
 }
-
-# Get the arch names for vault-ssh-helper archives (https://releases.hashicorp.com/vault-ssh-helper)
-get_vault_ssh_helper_dist_arch()
-{
-  if [ "$1" = "armhf" ] || [ "$1" = "arm64" ]; then
-    echo "arm"
-  else
-    echo "$1"
-  fi
-}
-
-
 
 # Installs the server components
 # Args: Distribution
@@ -285,7 +272,6 @@ install_node()
   DIST_TYPE=$(get_dist_type "$DIST")
   DIST_ARCH=$(get_dist_arch "$ARCH")
   FRP_DIST_ARCH=$(get_frp_dist_arch "$DIST_ARCH")
-  VAULT_SSH_DIST_ARCH=$(get_vault_ssh_helper_dist_arch "$DIST_ARCH")
 
   # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
   # Remove any previous non docker-ce installs ( FIXME : This does not work for Ubuntu22.04. For Ubuntu22.04 if docker.io was installed, the user needs to uninstall docker.io and reboot before running the installer)
@@ -350,20 +336,13 @@ install_node()
     usermod -aG docker "$USER"
   fi
 
-    show_progress 30
+  show_progress 30
 
   # Install the FRP client on the node
-    curl -LO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
+  curl -LO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
     tar -xf frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && cd frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH" && cp frpc /usr/local/bin/
 
-    show_progress 32
-
-  # Install vault-ssh-helper on the node
-  wget https://releases.hashicorp.com/vault-ssh-helper/"$VAULT_SSH_HELPER_VERSION"/vault-ssh-helper_"$VAULT_SSH_HELPER_VERSION"_linux_"$VAULT_SSH_DIST_ARCH".zip && \
-    unzip -q vault-ssh-helper_"$VAULT_SSH_HELPER_VERSION"_linux_"$VAULT_SSH_DIST_ARCH".zip -d /usr/local/bin && \
-    chmod 0755 /usr/local/bin/vault-ssh-helper && chown root:root /usr/local/bin/vault-ssh-helper
-
-    show_progress 35
+  show_progress 35
 
   # Reconfigure the /etc/pam.d/sshd file to apply edgebuilder user specific settings so that it can use vault OTP authentication
   # Note: All other users should use the default or their own custom pam configurations
