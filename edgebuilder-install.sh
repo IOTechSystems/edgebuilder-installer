@@ -88,7 +88,7 @@ get_dist_name()
   fi
 }
 
-# Gets the distribution number 20.04, 18.04 etc
+# Gets the distribution number 20.04, 22.04 etc
 get_dist_num()
 {
   if [ "$1" = "$UBUNTU2204" ]; then
