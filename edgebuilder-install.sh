@@ -687,7 +687,7 @@ if [ "$COMPONENT" = "server" ];then
       uninstall_server
   fi
 
-  if [ "$ARCH" = "x86_64" ];then
+  if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ];then
     if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN12" ];then
       install_server "$OS"
     else
