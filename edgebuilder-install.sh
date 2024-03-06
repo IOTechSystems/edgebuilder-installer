@@ -38,6 +38,7 @@ DEBIAN10="Debian GNU/Linux 10"
 DEBIAN11="Debian GNU/Linux 11"
 RASPBIAN10="Raspbian GNU/Linux 10"
 
+# docker/compose supported versions
 DOCKER_VERSION="25.0.3"
 COMPOSE_VERSION="v2.24.6"
 
