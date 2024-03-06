@@ -38,6 +38,9 @@ DEBIAN10="Debian GNU/Linux 10"
 DEBIAN11="Debian GNU/Linux 11"
 RASPBIAN10="Raspbian GNU/Linux 10"
 
+DOCKER_VERSION="25.0.3"
+COMPOSE_VERSION="v2.24.6"
+
 KEYRINGS_DIR="/etc/apt/keyrings"
 
 RPM_REPO_DATA='[IoTech]
@@ -131,6 +134,26 @@ get_frp_dist_arch()
   fi
 }
 
+check_docker_and_compose()
+{
+  # Check if the docker is installed and running
+  if [ "$(systemctl is-enabled docker.service)" != "enabled" ]; then
+    echo "Docker is not available, please ensure you have docker version "$DOCKER_VERSION" installed and running"
+    exit 1
+  fi
+
+  # Check docker/compose version
+  current_docker_version=$(docker version | sed -n '2p' | awk '{print $2}')
+  current_compose_version=$(docker compose version | awk '{print $4}')
+  if [ "$current_docker_version" != "$DOCKER_VERSION" ]; then
+    echo "Docker version "$current_docker_version" is not supported, please install docker version "$DOCKER_VERSION", for details see: https://docs.docker.com/engine/install/"
+    exit 2
+  elif [ "$current_compose_version" != "$COMPOSE_VERSION" ]; then
+    echo "Docker compose version "$current_compose_version" is not supported, please install docker compose version "$COMPOSE_VERSION", for details see: https://docs.docker.com/engine/install/"
+    exit 3
+  fi
+}
+
 # Installs the server components
 # Args: Distribution
 install_server()
@@ -158,34 +181,8 @@ install_server()
   DIST_TYPE=$(get_dist_type "$DIST")
   DIST_ARCH=$(get_dist_arch "$ARCH")
 
-  # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
-  # Remove any previous non docker-ce installs ( FIXME : This does not work for Ubuntu22.04. For Ubuntu22.04 if docker.io was installed, the user needs to uninstall docker.io and reboot before running the installer)
-  # Check if the docker.service and/or docker.socket are running
-  if [ "$(systemctl is-enabled docker.service)" = "enabled" ]; then
-     systemctl disable docker.service
-     if [ "$DIST_NAME" = "jammy" ]; then
-        show_progress 40
-        log "ERROR: Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder" >&3
-        exit 1
-     fi
-  fi
-
-  if [ "$(systemctl is-enabled docker.socket)" = "enabled" ]; then
-    systemctl disable docker.socket
-  fi
-  for i in docker docker-engine docker.io containerd runc; do
-    apt-get remove -y $i  # Do not pause on missing packages
-  done
-  # Refresh systemctl services
-  systemctl daemon-reload
-  systemctl reset-failed
-
-  show_progress 15
-  # Add Docker's official GPG key
-  install -m 0755 -d "$KEYRINGS_DIR"
-  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o "$KEYRINGS_DIR"/docker.gpg
-  chmod a+r "$KEYRINGS_DIR"/docker.gpg
-  echo "deb [arch=$DIST_ARCH signed-by=$KEYRINGS_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  show_progress 10
+  check_docker_and_compose
 
   show_progress 18
   if test -f "$FILE" ; then
