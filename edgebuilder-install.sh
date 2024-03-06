@@ -205,23 +205,6 @@ install_server()
     apt-get install -qq -y edgebuilder-server="$VER"
   fi
 
-  show_progress 30
-
-  USER=$(logname)
-  if [ "$USER" != "root" ]; then
-    if ! grep -q "$USER     ALL=(ALL) NOPASSWD:ALL" /etc/sudoers ;then
-      echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
-    fi
-    usermod -aG docker "$USER"
-  fi
-
-  show_progress 35
-  # start docker services
-  systemctl enable docker.service
-  systemctl enable docker.socket
-  systemctl is-active --quiet docker.service || systemctl start docker.service
-  systemctl is-active --quiet docker.socket || systemctl start docker.socket
-
   show_progress 40
   log " Validating installation" >&3
   OUTPUT=$(edgebuilder-server)
@@ -265,35 +248,8 @@ install_node()
   DIST_ARCH=$(get_dist_arch "$ARCH")
   FRP_DIST_ARCH=$(get_frp_dist_arch "$DIST_ARCH")
 
-  # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
-  # Remove any previous non docker-ce installs ( FIXME : This does not work for Ubuntu22.04. For Ubuntu22.04 if docker.io was installed, the user needs to uninstall docker.io and reboot before running the installer)
-  # Check if the docker.service and/or docker.socket are running
-  if [ "$(systemctl is-enabled docker.service)" = "enabled" ]; then
-     systemctl disable docker.service
-     if [ "$DIST_NAME" = "jammy" ]; then
-        show_progress 40
-        log "Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder" >&3
-        exit 1
-     fi
-  fi
-
-  if [ "$(systemctl is-enabled docker.socket)" = "enabled" ]; then
-    systemctl disable docker.socket
-  fi
-  for i in docker docker-engine docker.io containerd runc docker-ce docker-ce-cli docker-compose-plugin docker-ce-rootless-extras; do
-    apt-get remove -y $i  # Do not pause on missing packages
-  done
-  # Refresh systemctl services
-  systemctl daemon-reload
-  systemctl reset-failed
-
-  show_progress 18
-
-  # Add Docker's official GPG key
-  install -m 0755 -d "$KEYRINGS_DIR"
-  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o "$KEYRINGS_DIR"/docker.gpg
-  chmod a+r "$KEYRINGS_DIR"/docker.gpg
-  echo "deb [arch=$DIST_ARCH signed-by=$KEYRINGS_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  show_progress 10
+  check_docker_and_compose
 
   # Setting up repos to access iotech packages
   wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
@@ -316,16 +272,6 @@ install_node()
     apt-get install -y "$FILE"
   else
     apt-get install -y -qq edgebuilder-node="$VER"
-  fi
-
-  show_progress 28
-
-  USER=$(logname)
-  if [ "$USER" != "root" ]; then
-    if ! grep -q "$USER     ALL=(ALL) NOPASSWD:ALL" /etc/sudoers ;then
-      echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
-    fi
-    usermod -aG docker "$USER"
   fi
 
   show_progress 30
@@ -354,13 +300,6 @@ install_node()
     echo "auth optional pam_unix.so use_first_pass nodelay"
   } >> ${pamSSHConfigFile}
 
-  show_progress 40
-  # start services
-  log "Enabling docker services..." >&3
-  systemctl enable docker.service
-  systemctl enable docker.socket
-  systemctl is-active --quiet docker.service || systemctl start docker.service
-  systemctl is-active --quiet docker.socket || systemctl start docker.socket
   # enable builderd service
   systemctl enable builderd.service
   # enable eb-node service for offline node provision
