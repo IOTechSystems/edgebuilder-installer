@@ -139,7 +139,7 @@ check_docker_and_compose()
 {
   # Check if the docker is installed and running
   if [ "$(systemctl is-enabled docker.service)" != "enabled" ]; then
-    log "Docker is not available, please ensure you have docker version "$DOCKER_VERSION" installed and running"  >&3
+    log "Docker is not available, please ensure you have docker version "$DOCKER_VERSION" (or later) installed and running"  >&3
     exit 1
   fi
 
@@ -147,10 +147,10 @@ check_docker_and_compose()
   current_docker_version=$(docker version | sed -n '2p' | awk '{print $2}')
   current_compose_version=$(docker compose version | awk '{print $4}')
   if [ $(echo "$current_docker_version" "$DOCKER_VERSION" | tr " " "\n" | sort | sed -n '1p') != "$DOCKER_VERSION" ]; then
-    log "Docker version "$current_docker_version" is not supported, please install docker version "$DOCKER_VERSION" or later, for details see: https://docs.docker.com/engine/install/" >&3
+    log "Docker version "$current_docker_version" is not supported, please install docker version "$DOCKER_VERSION" (or later), for details see: https://docs.docker.com/engine/install/" >&3
     exit 2
   elif [ $(echo "$current_compose_version" "$COMPOSE_VERSION" | tr " " "\n" | sort | sed -n '1p') != "$COMPOSE_VERSION" ]; then
-    log "Docker compose version "$current_compose_version" is not supported, please install docker compose version "$COMPOSE_VERSION" or later, for details see: https://docs.docker.com/engine/install/" >&3
+    log "Docker compose version "$current_compose_version" is not supported, please install docker compose version "$COMPOSE_VERSION" (or later), for details see: https://docs.docker.com/engine/install/" >&3
     exit 3
   fi
 }
