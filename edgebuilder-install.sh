@@ -146,11 +146,11 @@ check_docker_and_compose()
   # Check docker/compose version
   current_docker_version=$(docker version | sed -n '2p' | awk '{print $2}')
   current_compose_version=$(docker compose version | awk '{print $4}')
-  if [ "$current_docker_version" != "$DOCKER_VERSION" ]; then
-    echo "Docker version "$current_docker_version" is not supported, please install docker version "$DOCKER_VERSION", for details see: https://docs.docker.com/engine/install/"
+  if [ $(echo "$current_docker_version" "$DOCKER_VERSION" | tr " " "\n" | sort | sed -n '1p') != "$DOCKER_VERSION" ]; then
+    echo "Docker version "$current_docker_version" is not supported, please install docker version "$DOCKER_VERSION" or later, for details see: https://docs.docker.com/engine/install/"
     exit 2
-  elif [ "$current_compose_version" != "$COMPOSE_VERSION" ]; then
-    echo "Docker compose version "$current_compose_version" is not supported, please install docker compose version "$COMPOSE_VERSION", for details see: https://docs.docker.com/engine/install/"
+  elif [ $(echo "$current_compose_version" "$COMPOSE_VERSION" | tr " " "\n" | sort | sed -n '1p') != "$COMPOSE_VERSION" ]; then
+    echo "Docker compose version "$current_compose_version" is not supported, please install docker compose version "$COMPOSE_VERSION" or later, for details see: https://docs.docker.com/engine/install/"
     exit 3
   fi
 }
