@@ -185,6 +185,11 @@ install_server()
   show_progress 10
   check_docker_and_compose
 
+# Refresh systemctl services
+  show_progress 15
+  systemctl daemon-reload
+  systemctl reset-failed
+
   show_progress 18
   if test -f "$FILE" ; then
     apt-get update -qq
@@ -204,6 +209,16 @@ install_server()
 
     apt-get update -qq
     apt-get install -qq -y edgebuilder-server="$VER"
+  fi
+
+  show_progress 30
+
+  USER=$(logname)
+  if [ "$USER" != "root" ]; then
+    if ! grep -q "$USER     ALL=(ALL) NOPASSWD:ALL" /etc/sudoers ;then
+      echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
+    fi
+    usermod -aG docker "$USER"
   fi
 
   show_progress 40
@@ -252,6 +267,10 @@ install_node()
   show_progress 10
   check_docker_and_compose
 
+  # Refresh systemctl services
+  systemctl daemon-reload
+  systemctl reset-failed
+
   # Setting up repos to access iotech packages
   wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
   if [ "$REPOAUTH" != "" ]; then
@@ -273,6 +292,16 @@ install_node()
     apt-get install -y "$FILE"
   else
     apt-get install -y -qq edgebuilder-node="$VER"
+  fi
+
+  show_progress 28
+
+  USER=$(logname)
+  if [ "$USER" != "root" ]; then
+    if ! grep -q "$USER     ALL=(ALL) NOPASSWD:ALL" /etc/sudoers ;then
+      echo "$USER     ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR='tee -a' visudo
+    fi
+    usermod -aG docker "$USER"
   fi
 
   show_progress 30
