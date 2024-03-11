@@ -29,6 +29,7 @@ UNINSTALL=false
 FILE=""
 OFFLINE_PROVISION=false
 REPOAUTH=""
+INSTALL_DOCKER=false
 VER="3.0.0.dev"
 FRP_VERSION="0.52.3"
 
@@ -137,6 +138,12 @@ get_frp_dist_arch()
 
 check_docker_and_compose()
 {
+  # Install docker if requested
+  if [ "$INSTALL_DOCKER" ]; then
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh ./get-docker.sh
+  fi
+
   # Check if the docker is installed and running
   if [ "$(systemctl is-enabled docker.service)" != "enabled" ]; then
     log "Docker is not available, please ensure you have docker version "$DOCKER_VERSION" (or later) installed and running"  >&3
@@ -584,6 +591,10 @@ while [ "$1" != "" ]; do
             ;;
         --offline-provision)
             OFFLINE_PROVISION=true
+            shift
+            ;;
+        --install-docker)
+            INSTALL_DOCKER=true
             shift
             ;;
         *)
