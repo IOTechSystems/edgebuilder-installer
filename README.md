@@ -18,6 +18,7 @@ params: server, node, cli
 
 to uninstall, use optional param : -u  
 
+to install docker (and compose), use optional param : --install-docker
 
 ## Dev info only:
 
