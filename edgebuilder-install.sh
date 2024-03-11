@@ -262,10 +262,6 @@ install_node()
   show_progress 10
   check_docker_and_compose
 
-  # Refresh systemctl services
-  systemctl daemon-reload
-  systemctl reset-failed
-
   # Setting up repos to access iotech packages
   wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
   if [ "$REPOAUTH" != "" ]; then
