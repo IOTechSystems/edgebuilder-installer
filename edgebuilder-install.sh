@@ -139,7 +139,7 @@ get_frp_dist_arch()
 check_docker_and_compose()
 {
   # Install docker if requested
-  if [ "$INSTALL_DOCKER" ]; then
+  if [ "$INSTALL_DOCKER" = "true" ]; then
     curl -fsSL https://get.docker.com -o get-docker.sh
     sudo sh ./get-docker.sh
   fi
