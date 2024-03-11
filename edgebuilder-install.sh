@@ -185,11 +185,6 @@ install_server()
   show_progress 10
   check_docker_and_compose
 
-# Refresh systemctl services
-  show_progress 15
-  systemctl daemon-reload
-  systemctl reset-failed
-
   show_progress 18
   if test -f "$FILE" ; then
     apt-get update -qq
