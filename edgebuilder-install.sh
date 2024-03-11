@@ -29,6 +29,7 @@ UNINSTALL=false
 FILE=""
 OFFLINE_PROVISION=false
 REPOAUTH=""
+INSTALL_DOCKER=false
 VER="3.0.0.dev"
 FRP_VERSION="0.52.3"
 
@@ -37,6 +38,10 @@ UBUNTU2004="Ubuntu 20.04"
 DEBIAN10="Debian GNU/Linux 10"
 DEBIAN11="Debian GNU/Linux 11"
 RASPBIAN10="Raspbian GNU/Linux 10"
+
+# docker/compose supported versions
+DOCKER_VERSION="25.0.3"
+COMPOSE_VERSION="v2.24.6"
 
 KEYRINGS_DIR="/etc/apt/keyrings"
 
@@ -131,6 +136,32 @@ get_frp_dist_arch()
   fi
 }
 
+check_docker_and_compose()
+{
+  # Install docker if requested
+  if [ "$INSTALL_DOCKER" = "true" ]; then
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh ./get-docker.sh
+  fi
+
+  # Check if the docker is installed and running
+  if [ "$(systemctl is-enabled docker.service)" != "enabled" ]; then
+    log "Docker is not available, please ensure you have docker version "$DOCKER_VERSION" (or later) installed and running"  >&3
+    exit 1
+  fi
+
+  # Check docker/compose version
+  current_docker_version=$(docker version | sed -n '2p' | awk '{print $2}')
+  current_compose_version=$(docker compose version | awk '{print $4}')
+  if [ $(echo "$current_docker_version" "$DOCKER_VERSION" | tr " " "\n" | sort | sed -n '1p') != "$DOCKER_VERSION" ]; then
+    log "Docker version "$current_docker_version" is not supported, please install docker version "$DOCKER_VERSION" (or later), for details see: https://docs.docker.com/engine/install/" >&3
+    exit 2
+  elif [ $(echo "$current_compose_version" "$COMPOSE_VERSION" | tr " " "\n" | sort | sed -n '1p') != "$COMPOSE_VERSION" ]; then
+    log "Docker compose version "$current_compose_version" is not supported, please install docker compose version "$COMPOSE_VERSION" (or later), for details see: https://docs.docker.com/engine/install/" >&3
+    exit 3
+  fi
+}
+
 # Installs the server components
 # Args: Distribution
 install_server()
@@ -158,34 +189,8 @@ install_server()
   DIST_TYPE=$(get_dist_type "$DIST")
   DIST_ARCH=$(get_dist_arch "$ARCH")
 
-  # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
-  # Remove any previous non docker-ce installs ( FIXME : This does not work for Ubuntu22.04. For Ubuntu22.04 if docker.io was installed, the user needs to uninstall docker.io and reboot before running the installer)
-  # Check if the docker.service and/or docker.socket are running
-  if [ "$(systemctl is-enabled docker.service)" = "enabled" ]; then
-     systemctl disable docker.service
-     if [ "$DIST_NAME" = "jammy" ]; then
-        show_progress 40
-        log "ERROR: Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder" >&3
-        exit 1
-     fi
-  fi
-
-  if [ "$(systemctl is-enabled docker.socket)" = "enabled" ]; then
-    systemctl disable docker.socket
-  fi
-  for i in docker docker-engine docker.io containerd runc; do
-    apt-get remove -y $i  # Do not pause on missing packages
-  done
-  # Refresh systemctl services
-  systemctl daemon-reload
-  systemctl reset-failed
-
-  show_progress 15
-  # Add Docker's official GPG key
-  install -m 0755 -d "$KEYRINGS_DIR"
-  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o "$KEYRINGS_DIR"/docker.gpg
-  chmod a+r "$KEYRINGS_DIR"/docker.gpg
-  echo "deb [arch=$DIST_ARCH signed-by=$KEYRINGS_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  show_progress 10
+  check_docker_and_compose
 
   show_progress 18
   if test -f "$FILE" ; then
@@ -217,13 +222,6 @@ install_server()
     fi
     usermod -aG docker "$USER"
   fi
-
-  show_progress 35
-  # start docker services
-  systemctl enable docker.service
-  systemctl enable docker.socket
-  systemctl is-active --quiet docker.service || systemctl start docker.service
-  systemctl is-active --quiet docker.socket || systemctl start docker.socket
 
   show_progress 40
   log " Validating installation" >&3
@@ -268,35 +266,8 @@ install_node()
   DIST_ARCH=$(get_dist_arch "$ARCH")
   FRP_DIST_ARCH=$(get_frp_dist_arch "$DIST_ARCH")
 
-  # Install docker using the repo (TODO : This method isn't supported for Raspbian see install instructions here https://docs.docker.com/engine/install/debian/#install-using-the-convenience-script)
-  # Remove any previous non docker-ce installs ( FIXME : This does not work for Ubuntu22.04. For Ubuntu22.04 if docker.io was installed, the user needs to uninstall docker.io and reboot before running the installer)
-  # Check if the docker.service and/or docker.socket are running
-  if [ "$(systemctl is-enabled docker.service)" = "enabled" ]; then
-     systemctl disable docker.service
-     if [ "$DIST_NAME" = "jammy" ]; then
-        show_progress 40
-        log "Exiting installation due to (old version) docker already present. Please uninstall docker.io manually and reboot before trying to install Edge Builder" >&3
-        exit 1
-     fi
-  fi
-
-  if [ "$(systemctl is-enabled docker.socket)" = "enabled" ]; then
-    systemctl disable docker.socket
-  fi
-  for i in docker docker-engine docker.io containerd runc docker-ce docker-ce-cli docker-compose-plugin docker-ce-rootless-extras; do
-    apt-get remove -y $i  # Do not pause on missing packages
-  done
-  # Refresh systemctl services
-  systemctl daemon-reload
-  systemctl reset-failed
-
-  show_progress 18
-
-  # Add Docker's official GPG key
-  install -m 0755 -d "$KEYRINGS_DIR"
-  curl -fsSL https://download.docker.com/linux/"$DIST_TYPE"/gpg | sudo gpg --dearmor --yes -o "$KEYRINGS_DIR"/docker.gpg
-  chmod a+r "$KEYRINGS_DIR"/docker.gpg
-  echo "deb [arch=$DIST_ARCH signed-by=$KEYRINGS_DIR/docker.gpg] https://download.docker.com/linux/$DIST_TYPE $DIST_NAME stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  show_progress 10
+  check_docker_and_compose
 
   # Setting up repos to access iotech packages
   wget -q -O - https://iotech.jfrog.io/iotech/api/gpg/key/public | sudo apt-key add -
@@ -357,13 +328,6 @@ install_node()
     echo "auth optional pam_unix.so use_first_pass nodelay"
   } >> ${pamSSHConfigFile}
 
-  show_progress 40
-  # start services
-  log "Enabling docker services..." >&3
-  systemctl enable docker.service
-  systemctl enable docker.socket
-  systemctl is-active --quiet docker.service || systemctl start docker.service
-  systemctl is-active --quiet docker.socket || systemctl start docker.socket
   # enable builderd service
   systemctl enable builderd.service
   # enable eb-node service for offline node provision
@@ -627,6 +591,10 @@ while [ "$1" != "" ]; do
             ;;
         --offline-provision)
             OFFLINE_PROVISION=true
+            shift
+            ;;
+        --install-docker)
+            INSTALL_DOCKER=true
             shift
             ;;
         *)
