@@ -328,6 +328,11 @@ install_node()
     echo "auth optional pam_unix.so use_first_pass nodelay"
   } >> ${pamSSHConfigFile}
 
+  # Load alpine docker image
+  docker load -i alpine_3_19_1.tar
+
+  show_progress 45
+
   # enable builderd service
   systemctl enable builderd.service
   # enable eb-node service for offline node provision
