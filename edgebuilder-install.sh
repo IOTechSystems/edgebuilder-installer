@@ -121,7 +121,7 @@ get_dist_arch()
     echo "amd64"
   elif [ "$1" = "aarch64" ]; then
     echo "arm64"
-  elif [ "$1" = "armv7l" ]; then
+  elif [ "$1" = "armv7l" ] || [ "$1" = "armv6l" ]; then
     echo "armhf"
   fi
 }
@@ -666,7 +666,7 @@ elif [ "$COMPONENT" = "node" ]; then
     uninstall_node
   fi
 
-  if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
+  if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ]||[ "$ARCH" = "armv6l" ];then
     if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ];then
       install_node "$OS" "$ARCH"
     else
@@ -683,7 +683,7 @@ elif [ "$COMPONENT" = "cli" ]; then
       uninstall_cli
   fi
 
-  if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
+  if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ]||[ "$ARCH" = "armv6l" ];then
     if [ -x "$(command -v apt-get)" ]; then
       install_cli_deb "$OS" "$ARCH"
     elif [ -x "$(command -v dnf)" ]; then
