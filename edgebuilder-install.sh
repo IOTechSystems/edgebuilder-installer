@@ -38,6 +38,7 @@ UBUNTU2004="Ubuntu 20.04"
 DEBIAN10="Debian GNU/Linux 10"
 DEBIAN11="Debian GNU/Linux 11"
 RASPBIAN10="Raspbian GNU/Linux 10"
+RASPBIAN11="Raspbian GNU/Linux 11"
 
 # docker/compose supported versions
 DOCKER_VERSION="25.0.3"
@@ -82,9 +83,9 @@ get_dist_name()
     echo "jammy"
   elif [ "$1" = "$UBUNTU2004" ]; then
     echo "focal"
-  elif  [ "$1" = "$DEBIAN11" ]; then
+  elif  [ "$1" = "$DEBIAN11" ] || [ "$1" = "$RASPBIAN11" ]; then
     echo "bullseye"
-  elif  [ "$1" = "$DEBIAN10" ] || [ "$1" = "$RASPBIAN10" ]; then
+  elif  [ "$1" = "$DEBIAN10" ] || [ "$1" = "$RASPBIAN10" ] ; then
     echo "buster"
   fi
 }
@@ -96,9 +97,9 @@ get_dist_num()
     echo "22.04"
   elif [ "$1" = "$UBUNTU2004" ]; then
     echo "20.04"
-  elif  [ "$1" = "$DEBIAN10" ] || [ "$1" = "$RASPBIAN10" ]; then
+  elif  [ "$1" = "$DEBIAN10" ] || [ "$1" = "$RASPBIAN10" ] ; then
     echo "10"
-  elif  [ "$1" = "$DEBIAN11" ]; then
+  elif  [ "$1" = "$DEBIAN11" ] || [ "$1" = "$RASPBIAN11" ]; then
     echo "11"
   fi
 }
