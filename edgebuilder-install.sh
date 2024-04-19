@@ -256,7 +256,7 @@ install_node()
 
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
-  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release unzip
+  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
 
   show_progress 5
 
@@ -327,6 +327,11 @@ install_node()
     echo "auth requisite pam_exec.so quiet expose_authtok log=/var/log/vault-ssh.log /usr/local/bin/vault-ssh-helper -config=/etc/vault-ssh-helper.d/config.hcl"
     echo "auth optional pam_unix.so use_first_pass nodelay"
   } >> ${pamSSHConfigFile}
+
+  # Load alpine docker image
+  docker load -i /opt/edgebuilder/node/alpine_3_19_1.tar
+
+  show_progress 45
 
   # enable builderd service
   systemctl enable builderd.service
