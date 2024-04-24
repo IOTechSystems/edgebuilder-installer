@@ -1,10 +1,8 @@
 #!/bin/sh
-LOGFILE=eb-installer.log
+set -x
 log() {
     echo "[$(date +"%T-%D")]" "$@"
 }
-exec 3>&1 1>"$LOGFILE" 2>&1
-set -x
 
 # Progress bar, used to indicate progress from 0 to 40
 bar_size=40
@@ -24,7 +22,7 @@ show_progress() {
   fi
 }
 
-
+LOGFILE=eb-installer.log
 UNINSTALL=false
 FILE=""
 OFFLINE_PROVISION=false
@@ -337,8 +335,7 @@ install_node()
   systemctl enable builderd.service
   # enable eb-node service for offline node provision
   if [ "$OFFLINE_PROVISION" ]; then
-    systemctl enable eb-node.service
-    systemctl start eb-node.service
+    systemctl enable --now eb-node.service
   fi
 
   log "Validating installation" >&3
@@ -497,16 +494,17 @@ uninstall_server()
 # Uninstall the Node components
 uninstall_node()
 {
+    log  "Starting Node ($VER) uninstall on $DIST - $ARCH" >&3
+    show_progress 1
    if dpkg -s edgebuilder-node; then
-
-      edgebuilder-node down
+      show_progress 50
       edgebuilder-node uninstall
-
+      show_progress 90
        if ! (dpkg --list edgebuilder-node) ; then
-           echo "Node Components Successfully Uninstalled"
+           log "Successfully uninstalled Node Components" >&3
            exit 0
       else
-           echo "ERROR: Node Components Uninstallation Failed"
+           log "Failed to uninstall Node Components" >&3
            exit 1
       fi
    else
@@ -523,15 +521,14 @@ uninstall_cli()
       if (dpkg-query -W -f='${Status}' edgebuilder-cli 2>/dev/null ) then
           sudo apt-get -qq remove edgebuilder-cli -y
           if (dpkg-query -W -f='${Status}' edgebuilder-cli 2>/dev/null ) ; then
-              echo "ERROR: CLI Components Uninstallation Failed"
+              log "Failed to uninstall CLI" >&3
               exit 1
           else
-              echo "CLI Components Successfully Uninstalled"
-              exit 0
+              log "CLI Successfully Uninstalled" >&3
           fi
       else
           # package not currently installed, so exit
-          echo "edgebuilder-cli NOT currently installed"
+          log "edgebuilder-cli NOT currently installed" >&3
           exit 0
       fi
 }
@@ -546,6 +543,7 @@ display_usage()
   echo "     -u, --uninstall          : Uninstall the package"
   echo "     -f, --file               : Absolute path to local package"
   echo "     --offline-provision      : Enable offline node provision"
+  echo "     --install-docker         : Install docker as part of package install"
 }
 
 ## Main starts here: ##
@@ -591,16 +589,20 @@ while [ "$1" != "" ]; do
             ;;
     esac
 done
+
+# If no params, display help
 if [ -z "$COMPONENT" ];then
     display_usage
     exit 1
 fi
 
 # If not run as sudo, exit
-if [ "$(id -u)" -ne 0 ]
-  then log "Insufficient permissions, please run as root/sudo" >&3
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Insufficient permissions, please run as root/sudo"
   exit 1
 fi
+
+exec 3>&1 1>"$LOGFILE" 2>&1
 
 # if the FILE argument has been supplied and is not a valid path to a file, output an error then exit
 if [ "$FILE" != "" ] && ! [ -f "$FILE" ]; then
