@@ -225,7 +225,7 @@ install_server()
 
   show_progress 40
   log " Validating installation" >&3
-  OUTPUT=$(edgemanager-server)
+  OUTPUT=$(em-server)
   if [ "$OUTPUT" = "" ]; then
     log "Server installation could not be validated" >&3
   else
@@ -342,7 +342,7 @@ install_node()
   fi
 
   log "Validating installation" >&3
-  OUTPUT=$(edgemanager-node)
+  OUTPUT=$(em-node)
   if [ "$OUTPUT" = "" ]; then
     log "Node installation could not be validated" >&3
   else
@@ -413,7 +413,7 @@ install_cli_deb()
   show_progress 40
 
   log "Validating installation"  >&3
-  OUTPUT=$(edgemanager-cli -v)
+  OUTPUT=$(em-cli -v)
   if [ "$OUTPUT" = "" ]; then
     log "CLI installation could not be validated"  >&3
     show_progress 40
@@ -456,7 +456,7 @@ install_cli_rpm()
   show_progress 40
 
   log "Validating installation" >&3
-  OUTPUT=$(edgemanager-cli -v)
+  OUTPUT=$(em-cli -v)
   if [ "$OUTPUT" = "" ]; then
     log "CLI installation could not be validated" >&3
   else
