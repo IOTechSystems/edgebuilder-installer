@@ -169,10 +169,10 @@ install_server()
   DIST=$1
   log "Starting server ($VER) install on $DIST"
   show_progress 1
-  if dpkg -l | grep -qw edgebuilder-server ;then
+  if dpkg -l | grep -qw edgemanager-server ;then
     # shellcheck disable=SC2062
-    if dpkg -s edgebuilder-server | grep -qw Status.*installed ;then
-      PKG_VER=$(dpkg -s edgebuilder-server | grep -i version)
+    if dpkg -s edgemanager-server | grep -qw Status.*installed ;then
+      PKG_VER=$(dpkg -s edgemanager-server | grep -i version)
        show_progress 40
       log "Server ($PKG_VER) already installed, exiting" >&3
       exit 0
@@ -210,7 +210,7 @@ install_server()
     fi
 
     apt-get update -qq
-    apt-get install -qq -y edgebuilder-server="$VER"
+    apt-get install -qq -y edgemanager-server="$VER"
   fi
 
   show_progress 30
@@ -225,7 +225,7 @@ install_server()
 
   show_progress 40
   log " Validating installation" >&3
-  OUTPUT=$(edgebuilder-server)
+  OUTPUT=$(edgemanager-server)
   if [ "$OUTPUT" = "" ]; then
     log "Server installation could not be validated" >&3
   else
@@ -242,10 +242,10 @@ install_node()
 
   log "Starting node ($VER) install on $DIST - $ARCH" >&3
     show_progress 1
-  if dpkg -l | grep -qw edgebuilder-node ;then
+  if dpkg -l | grep -qw edgemanager-node ;then
     # shellcheck disable=SC2062
-    if dpkg -s edgebuilder-node | grep -qw Status.*installed ;then
-      PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
+    if dpkg -s edgemanager-node | grep -qw Status.*installed ;then
+      PKG_VER=$(dpkg -s edgemanager-node | grep -i version)
       show_progress 40
       log "Node Components ($PKG_VER) already installed, exiting" >&3
       exit 0
@@ -289,7 +289,7 @@ install_node()
   if test -f "$FILE" ; then
     apt-get install -y "$FILE"
   else
-    apt-get install -y -qq edgebuilder-node="$VER"
+    apt-get install -y -qq edgemanager-node="$VER"
   fi
 
   show_progress 28
@@ -342,7 +342,7 @@ install_node()
   fi
 
   log "Validating installation" >&3
-  OUTPUT=$(edgebuilder-node)
+  OUTPUT=$(edgemanager-node)
   if [ "$OUTPUT" = "" ]; then
     log "Node installation could not be validated" >&3
   else
@@ -362,10 +362,10 @@ install_cli_deb()
 
   show_progress 1
 
-  if dpkg -l | grep -qw edgebuilder-cli ;then
+  if dpkg -l | grep -qw edgemanager-cli ;then
     # shellcheck disable=SC2062
-    if dpkg -s edgebuilder-cli | grep -qw Status.*installed ;then
-      PKG_VER=$(dpkg -s edgebuilder-node | grep -i version)
+    if dpkg -s edgemanager-cli | grep -qw Status.*installed ;then
+      PKG_VER=$(dpkg -s edgemanager-node | grep -i version)
       show_progress 40
       log "CLI ($PKG_VER) already installed, exiting"  >&3
       exit 0
@@ -407,13 +407,13 @@ install_cli_deb()
   if test -f "$FILE" ; then
     apt-get install -y "$FILE"
   else
-    sudo apt-get install -y -qq edgebuilder-cli="$VER"
+    sudo apt-get install -y -qq edgemanager-cli="$VER"
   fi
 
   show_progress 40
 
   log "Validating installation"  >&3
-  OUTPUT=$(edgebuilder-cli -v)
+  OUTPUT=$(edgemanager-cli -v)
   if [ "$OUTPUT" = "" ]; then
     log "CLI installation could not be validated"  >&3
     show_progress 40
@@ -433,8 +433,8 @@ install_cli_rpm()
 
   log  "Starting CLI ($VER) install on $DIST - $ARCH" >&3
   show_progress 1
-  if rpm -qa | grep -qw edgebuilder-cli ;then
-    PKG_VER=$("$PKG_MNGR" info --installed edgebuilder-cli | grep Version)
+  if rpm -qa | grep -qw edgemanager-cli ;then
+    PKG_VER=$("$PKG_MNGR" info --installed edgemanager-cli | grep Version)
     show_progress 40
     log "CLI ($PKG_VER) already installed, exiting" >&3
     exit 0
@@ -451,12 +451,12 @@ install_cli_rpm()
   fi
   show_progress 15
 
-  "$PKG_MNGR" install -y edgebuilder-cli-"$VER"*
+  "$PKG_MNGR" install -y edgemanager-cli-"$VER"*
 
   show_progress 40
 
   log "Validating installation" >&3
-  OUTPUT=$(edgebuilder-cli -v)
+  OUTPUT=$(edgemanager-cli -v)
   if [ "$OUTPUT" = "" ]; then
     log "CLI installation could not be validated" >&3
   else
@@ -468,11 +468,11 @@ install_cli_rpm()
 uninstall_server()
 {
     export DEBIAN_FRONTEND=noninteractive
-    if dpkg -s edgebuilder-server; then
+    if dpkg -s edgemanager-server; then
 
         sudo rm -rf /opt/edgebuilder/server/vault
         # attempt autoremove
-        if sudo apt autoremove -qq edgebuilder-server -y ;then
+        if sudo apt autoremove -qq edgemanager-server -y ;then
             log "Successfully autoremoved server components" >&3
         else
             log "Failed to autoremove Server Components" >&3
@@ -480,7 +480,7 @@ uninstall_server()
         fi
 
         # attempt purge
-        if sudo apt-get -qq purge edgebuilder-server -y ;then
+        if sudo apt-get -qq purge edgemanager-server -y ;then
             log "Successfully purged Server Components" >&3
         else
             log "Failed to purge Server Components" >&3
@@ -492,7 +492,7 @@ uninstall_server()
         exit 0
     else
         # package not currently installed, so exit
-        log "edgebuilder-server NOT currently installed" >&3
+        log "edgemanager-server NOT currently installed" >&3
         exit 0
     fi
 }
@@ -500,10 +500,10 @@ uninstall_server()
 # Uninstall the Node components
 uninstall_node()
 {
-  if dpkg -s edgebuilder-node; then
+  if dpkg -s edgemanager-node; then
 
       # attempt autoremove
-      if sudo apt autoremove -qq edgebuilder-node -y ;then
+      if sudo apt autoremove -qq edgemanager-node -y ;then
           log "Successfully autoremoved node components" >&3
       else
           log "Failed to autoremove node components" >&3
@@ -511,7 +511,7 @@ uninstall_node()
       fi
 
       # attempt purge
-      if sudo apt-get purge -qq edgebuilder-node -y ;then
+      if sudo apt-get purge -qq edgemanager-node -y ;then
           log  "Successfully purged Node Components" >&3
       else
           log "Failed to purge Node Components" >&3
@@ -523,7 +523,7 @@ uninstall_node()
       exit 0
   else
       # package not currently installed, so exit
-      log "edgebuilder-node NOT currently installed" >&3
+      log "edgemanager-node NOT currently installed" >&3
       exit 0
   fi
 }
@@ -531,11 +531,11 @@ uninstall_node()
 # Uninstall the CLI components
 uninstall_cli()
 {
-  # check if edgebuilder-cli is currently installed
-  if dpkg -s edgebuilder-cli; then
+  # check if edgemanager-cli is currently installed
+  if dpkg -s edgemanager-cli; then
 
       # attempt autoremove
-      if sudo apt autoremove -qq edgebuilder-cli -y ;then
+      if sudo apt autoremove -qq edgemanager-cli -y ;then
           log "Successfully autoremoved CLI" >&3
       else
           log "Failed to autoremove CLI" >&3
@@ -543,7 +543,7 @@ uninstall_cli()
       fi
 
       # attempt purge
-      if sudo apt-get -qq purge edgebuilder-cli -y ;then
+      if sudo apt-get -qq purge edgemanager-cli -y ;then
           log "Successfully purged CLI" >&3
       else
           log "Failed to purge CLI" >&3
@@ -555,7 +555,7 @@ uninstall_cli()
       exit 0
   else
       # package not currently installed, so exit
-      log "edgebuilder-cli NOT currently installed" >&3
+      log "edgemanager-cli NOT currently installed" >&3
       exit 0
   fi
 }
