@@ -466,15 +466,16 @@ uninstall_server()
 {
     export DEBIAN_FRONTEND=noninteractive
 
+    log  "Starting Server ($VER) uninstall on $DIST - $ARCH" >&3
+    show_progress 1
     # check if edgebuilder-server is currently installed
     if dpkg -s edgebuilder-server; then
-        edgebuilder-server down -v
         if [ "$IMAGE_PREFIX" = "dev-" ]; then
           edgebuilder-server uninstall --dev
         else
           edgebuilder-server uninstall
         fi
-        sudo rm -rf /opt/edgebuilder/server/vault
+        show_progress 90
         # attempt purge
         sudo apt-get -qq purge edgebuilder-server -y
         if  ! (dpkg --list edgebuilder-server);then
@@ -519,12 +520,13 @@ uninstall_cli()
 {
   # check if edgebuilder-cli is currently installed
       if (dpkg-query -W -f='${Status}' edgebuilder-cli 2>/dev/null ) then
-          sudo apt-get -qq remove edgebuilder-cli -y
+          sudo apt-get -qq purge edgebuilder-cli -y
           if (dpkg-query -W -f='${Status}' edgebuilder-cli 2>/dev/null ) ; then
               log "Failed to uninstall CLI" >&3
               exit 1
           else
               log "CLI Successfully Uninstalled" >&3
+              exit 0
           fi
       else
           # package not currently installed, so exit
