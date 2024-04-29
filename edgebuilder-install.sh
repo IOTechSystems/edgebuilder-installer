@@ -519,9 +519,9 @@ uninstall_node()
 uninstall_cli()
 {
   # check if edgebuilder-cli is currently installed
-      if (dpkg-query -W -f='${Status}' edgebuilder-cli 2>/dev/null ) then
+      if dpkg -s edgebuilder-cli; then
           sudo apt-get -qq purge edgebuilder-cli -y
-          if (dpkg-query -W -f='${Status}' edgebuilder-cli 2>/dev/null ) ; then
+          if (dpkg --list edgebuilder-cli) ; then
               log "Failed to uninstall CLI" >&3
               exit 1
           else
