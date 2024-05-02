@@ -659,10 +659,10 @@ if [ "$COMPONENT" = "server" ];then
     if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ];then
       install_server "$OS"
     else
-      log "The Edge Builder server components are not supported on $OS - $ARCH"  >&3
+      log "The Edge Manager server components are not supported on $OS - $ARCH"  >&3
     fi
   else
-    log "The Edge Builder server components are not supported on $ARCH"  >&3
+    log "The Edge Manager server components are not supported on $ARCH"  >&3
     exit 1
   fi
 elif [ "$COMPONENT" = "node" ]; then
@@ -675,11 +675,11 @@ elif [ "$COMPONENT" = "node" ]; then
     if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ];then
       install_node "$OS" "$ARCH"
     else
-      log "The Edge Builder node components are not supported on $OS - $ARCH"  >&3
+      log "The Edge Manager node components are not supported on $OS - $ARCH"  >&3
       exit 1
     fi
   else
-    log "The Edge Builder node components are not supported on $ARCH"  >&3
+    log "The Edge Manager node components are not supported on $ARCH"  >&3
     exit 1
   fi
 elif [ "$COMPONENT" = "cli" ]; then
@@ -696,11 +696,11 @@ elif [ "$COMPONENT" = "cli" ]; then
     elif [ -x "$(command -v yum)" ]; then
       install_cli_rpm "$OS" "$ARCH" "yum"
     else
-      log "The Edge Builder CLI cannot be installed as no suitable package manager has been found (apt, dnf or yum)"  >&3
+      log "The Edge Manager CLI cannot be installed as no suitable package manager has been found (apt, dnf or yum)"  >&3
       exit 1
     fi
   else
-    log "The Edge Builder CLI is not supported on $ARCH"  >&3
+    log "The Edge Manager CLI is not supported on $ARCH"  >&3
     exit 1
   fi
 fi
