@@ -1,5 +1,5 @@
 #!/bin/sh
-set -x
+
 log() {
     echo "[$(date +"%T-%D")]" "$@"
 }
@@ -471,9 +471,9 @@ uninstall_server()
     # check if edgebuilder-server is currently installed
     if dpkg -s edgebuilder-server; then
         if [ "$IMAGE_PREFIX" = "dev-" ]; then
-          edgebuilder-server uninstall --dev
+          edgebuilder-server down -v --dev --remove-images --remove-dirs
         else
-          edgebuilder-server uninstall
+          edgebuilder-server down -v --remove-images --remove-dirs
         fi
         show_progress 90
         # attempt purge
@@ -498,8 +498,10 @@ uninstall_node()
     log  "Starting Node ($VER) uninstall on $DIST - $ARCH" >&3
     show_progress 1
    if dpkg -s edgebuilder-node; then
-      show_progress 50
-      edgebuilder-node uninstall
+      show_progress 20
+      edgebuilder-node down --clean
+       show_progress 60
+      apt-get -qq purge edgebuilder-node iotech-builderd-1.1 -y
       show_progress 90
        if ! (dpkg --list edgebuilder-node) ; then
            log "Successfully uninstalled Node Components" >&3
