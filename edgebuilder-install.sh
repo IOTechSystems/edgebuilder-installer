@@ -471,11 +471,11 @@ uninstall_server()
     # check if edgebuilder-server is currently installed
     if dpkg -s edgebuilder-server; then
         if [ "$IMAGE_PREFIX" = "dev-" ]; then
-          edgebuilder-server down -v --dev --remove-images --remove-dirs
+          edgebuilder-server down -v --dev --remove-dirs
         else
-          edgebuilder-server down -v --remove-images --remove-dirs
+          edgebuilder-server down -v --remove-dirs
         fi
-        show_progress 90
+        show_progress 45
         # attempt purge
         sudo apt-get -qq purge edgebuilder-server -y
         if  ! (dpkg --list edgebuilder-server);then
@@ -500,9 +500,9 @@ uninstall_node()
    if dpkg -s edgebuilder-node; then
       show_progress 20
       edgebuilder-node down --clean
-       show_progress 60
+       show_progress 40
       apt-get -qq purge edgebuilder-node iotech-builderd-1.1 -y
-      show_progress 90
+      show_progress 45
        if ! (dpkg --list edgebuilder-node) ; then
            log "Successfully uninstalled Node Components" >&3
            exit 0
@@ -520,9 +520,11 @@ uninstall_node()
 # Uninstall the CLI components
 uninstall_cli()
 {
+  show_progress 1
   # check if edgebuilder-cli is currently installed
       if dpkg -s edgebuilder-cli; then
           sudo apt-get -qq purge edgebuilder-cli -y
+          show_progress 45
           if (dpkg --list edgebuilder-cli) ; then
               log "Failed to uninstall CLI" >&3
               exit 1
@@ -531,6 +533,7 @@ uninstall_cli()
               exit 0
           fi
       else
+          show_progress 45
           # package not currently installed, so exit
           log "edgebuilder-cli NOT currently installed" >&3
           exit 0
