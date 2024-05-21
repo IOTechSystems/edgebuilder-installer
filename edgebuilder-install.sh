@@ -333,9 +333,9 @@ install_node()
 
   # enable builderd service
   systemctl enable builderd.service
-  # enable eb-node service for offline node provision
+  # enable em-node service for offline node provision
   if [ "$OFFLINE_PROVISION" ]; then
-    systemctl enable --now eb-node.service
+    systemctl enable --now em-node.service
   fi
 
   log "Validating installation" >&3
