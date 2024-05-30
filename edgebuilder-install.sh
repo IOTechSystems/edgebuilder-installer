@@ -471,9 +471,9 @@ uninstall_server()
     # check if edgemanager-server is currently installed
     if dpkg -s edgemanager-server; then
         if [ "$IMAGE_PREFIX" = "dev-" ]; then
-          em-server down -v --dev --remove-dirs
+          em-server down -v --dev
         else
-          em-server down -v --remove-dirs
+          em-server down -v
         fi
         show_progress 45
         # attempt purge
