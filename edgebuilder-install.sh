@@ -487,7 +487,7 @@ uninstall_server()
         fi
     else
         # package not currently installed, so exit
-        log "edgemanager-server NOT currently installed" >&3
+        log "Server components NOT currently installed" >&3
         exit 0
     fi
 }
@@ -495,24 +495,23 @@ uninstall_server()
 # Uninstall the Node components
 uninstall_node()
 {
-    log  "Starting Node ($VER) uninstall on $DIST - $ARCH" >&3
-    show_progress 1
+   log  "Starting Node ($VER) uninstall on $DIST - $ARCH" >&3
+   show_progress 1
    if dpkg -s edgemanager-node; then
       show_progress 20
       em-node down --clean
-       show_progress 40
+      show_progress 40
       apt-get -qq purge edgemanager-node iotech-builderd-1.1 -y
-      show_progress 45
-       if ! (dpkg --list edgemanager-node) ; then
-           log "Successfully uninstalled Node Components" >&3
-           exit 0
+      if ! (dpkg --list edgemanager-node) ; then
+          log "Successfully uninstalled Node Components" >&3
+          exit 0
       else
-           log "Failed to uninstall Node Components" >&3
-           exit 1
+          log "Failed to uninstall Node Components" >&3
+          exit 1
       fi
    else
       # package not currently installed, so exit
-      log "edgemanager-node NOT currently installed" >&3
+      log "Node Components NOT currently installed" >&3
       exit 0
    fi
 }
@@ -520,8 +519,8 @@ uninstall_node()
 # Uninstall the CLI components
 uninstall_cli()
 {
-  show_progress 1
-  # check if edgemanager-cli is currently installed
+   show_progress 1
+   # check if edgemanager-cli is currently installed
       if dpkg -s edgemanager-cli; then
           sudo apt-get -qq purge edgemanager-cli -y
           show_progress 45
@@ -535,7 +534,7 @@ uninstall_cli()
       else
           show_progress 45
           # package not currently installed, so exit
-          log "edgemanager-cli NOT currently installed" >&3
+          log "CLI NOT currently installed" >&3
           exit 0
       fi
 }
@@ -640,7 +639,6 @@ ARCH="$(uname -m)"
 # Check compatibility
 log "Checking compatibility"  >&3
 if [ "$COMPONENT" = "server" ];then
-
   if "$UNINSTALL"; then
       uninstall_server
   fi
@@ -656,20 +654,19 @@ if [ "$COMPONENT" = "server" ];then
     exit 1
   fi
 elif [ "$COMPONENT" = "node" ]; then
-
   if "$UNINSTALL"; then
-    uninstall_node
+     uninstall_node
   fi
 
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
     if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ];then
       install_node "$OS" "$ARCH"
     else
-      log "The Edge Manager node components are not supported on $OS - $ARCH"  >&3
+      log "Edge Manager node components are not supported on $OS - $ARCH"  >&3
       exit 1
     fi
   else
-    log "The Edge Manager node components are not supported on $ARCH"  >&3
+    log "Edge Manager node components are not supported on $ARCH"  >&3
     exit 1
   fi
 elif [ "$COMPONENT" = "cli" ]; then
@@ -686,11 +683,11 @@ elif [ "$COMPONENT" = "cli" ]; then
     elif [ -x "$(command -v yum)" ]; then
       install_cli_rpm "$OS" "$ARCH" "yum"
     else
-      log "The Edge Manager CLI cannot be installed as no suitable package manager has been found (apt, dnf or yum)"  >&3
+      log "Edge Manager CLI cannot be installed as no suitable package manager has been found (apt, dnf or yum)"  >&3
       exit 1
     fi
   else
-    log "The Edge Manager CLI is not supported on $ARCH"  >&3
+    log "Edge Manager CLI is not supported on $ARCH"  >&3
     exit 1
   fi
 fi
