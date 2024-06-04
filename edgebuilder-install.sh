@@ -496,7 +496,7 @@ uninstall_node()
    show_progress 1
    if dpkg -s edgemanager-node; then
       show_progress 20
-      em-node down --clean
+      em-node down
       show_progress 40
       apt-get -qq purge edgemanager-node iotech-builderd-1.1 -y
       if ! (dpkg --list edgemanager-node) ; then
