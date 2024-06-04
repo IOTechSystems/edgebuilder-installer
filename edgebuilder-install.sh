@@ -1,8 +1,10 @@
 #!/bin/sh
-
+LOGFILE=eb-installer.log
 log() {
     echo "[$(date +"%T-%D")]" "$@"
 }
+exec 3>&1 1>"$LOGFILE" 2>&1
+set -x
 
 # Progress bar, used to indicate progress from 0 to 40
 bar_size=40
@@ -22,7 +24,6 @@ show_progress() {
   fi
 }
 
-LOGFILE=eb-installer.log
 UNINSTALL=false
 FILE=""
 OFFLINE_PROVISION=false
@@ -470,11 +471,7 @@ uninstall_server()
     show_progress 1
     # check if edgemanager-server is currently installed
     if dpkg -s edgemanager-server; then
-        if [ "$IMAGE_PREFIX" = "dev-" ]; then
-          em-server down -v --dev
-        else
-          em-server down -v
-        fi
+        em-server down -v
         show_progress 45
         # attempt purge
         sudo apt-get -qq purge edgemanager-server -y
@@ -542,18 +539,17 @@ uninstall_cli()
 # Displays simple usage prompt
 display_usage()
 {
-  echo "Usage: edgebuilder-install.sh [param] [options]"
-  echo "params: server, node, cli"
-  echo "options: "
-  echo "     -r, --repo-auth          : IoTech repo auth token to access packages"
-  echo "     -u, --uninstall          : Uninstall the package"
-  echo "     -f, --file               : Absolute path to local package"
-  echo "     --offline-provision      : Enable offline node provision"
-  echo "     --install-docker         : Install docker as part of package install"
+  echo "Usage: edgebuilder-install.sh [param] [options]" >&3
+  echo "params: server, node, cli" >&3
+  echo "options: " >&3
+  echo "     -r, --repo-auth          : IoTech repo auth token to access packages" >&3
+  echo "     -u, --uninstall          : Uninstall the package" >&3
+  echo "     -f, --file               : Absolute path to local package" >&3
+  echo "     --offline-provision      : Enable offline node provision" >&3
+  echo "     --install-docker         : Install docker as part of package install" >&3
 }
 
 ## Main starts here: ##
-IMAGE_PREFIX=""
 # If no options are specified, print help
 while [ "$1" != "" ]; do
     case $1 in
@@ -573,10 +569,6 @@ while [ "$1" != "" ]; do
             ;;
         -u | --uninstall)
             UNINSTALL=true
-            shift
-            ;;
-        --dev)
-            IMAGE_PREFIX="dev-"
             shift
             ;;
         --offline-provision)
@@ -607,8 +599,6 @@ if [ "$(id -u)" -ne 0 ]; then
   echo "Insufficient permissions, please run as root/sudo"
   exit 1
 fi
-
-exec 3>&1 1>"$LOGFILE" 2>&1
 
 # if the FILE argument has been supplied and is not a valid path to a file, output an error then exit
 if [ "$FILE" != "" ] && ! [ -f "$FILE" ]; then
