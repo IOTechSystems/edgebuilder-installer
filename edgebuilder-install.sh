@@ -24,7 +24,6 @@ show_progress() {
   fi
 }
 
-
 UNINSTALL=false
 FILE=""
 OFFLINE_PROVISION=false
@@ -335,10 +334,9 @@ install_node()
 
   # enable builderd service
   systemctl enable builderd.service
-  # enable eb-node service for offline node provision
+  # enable em-node service for offline node provision
   if [ "$OFFLINE_PROVISION" ]; then
-    systemctl enable eb-node.service
-    systemctl start eb-node.service
+    systemctl enable --now em-node.service
   fi
 
   log "Validating installation" >&3
@@ -468,31 +466,25 @@ install_cli_rpm()
 uninstall_server()
 {
     export DEBIAN_FRONTEND=noninteractive
+
+    log  "Starting Server ($VER) uninstall on $DIST - $ARCH" >&3
+    show_progress 1
+    # check if edgemanager-server is currently installed
     if dpkg -s edgemanager-server; then
-
-        sudo rm -rf /opt/edgebuilder/server/vault
-        # attempt autoremove
-        if sudo apt autoremove -qq edgemanager-server -y ;then
-            log "Successfully autoremoved server components" >&3
-        else
-            log "Failed to autoremove Server Components" >&3
-            exit 1
-        fi
-
+        em-server down -v
+        show_progress 45
         # attempt purge
-        if sudo apt-get -qq purge edgemanager-server -y ;then
-            log "Successfully purged Server Components" >&3
+        sudo apt-get -qq purge edgemanager-server -y
+        if  ! (dpkg --list edgemanager-server);then
+            log "Successfully uninstalled Server Components" >&3
+            exit 0
         else
-            log "Failed to purge Server Components" >&3
+            log "Failed to uninstall Server Components" >&3
             exit 1
         fi
-
-        # Successfully installed, exit
-        log "Server Components Uninstalled" >&3
-        exit 0
     else
         # package not currently installed, so exit
-        log "edgemanager-server NOT currently installed" >&3
+        log "Server components NOT currently installed" >&3
         exit 0
     fi
 }
@@ -500,76 +492,61 @@ uninstall_server()
 # Uninstall the Node components
 uninstall_node()
 {
-  if dpkg -s edgemanager-node; then
-
-      # attempt autoremove
-      if sudo apt autoremove -qq edgemanager-node -y ;then
-          log "Successfully autoremoved node components" >&3
+   log  "Starting Node ($VER) uninstall on $DIST - $ARCH" >&3
+   show_progress 1
+   if dpkg -s edgemanager-node; then
+      show_progress 20
+      em-node down
+      show_progress 40
+      apt-get -qq purge edgemanager-node iotech-builderd-1.1 -y
+      if ! (dpkg --list edgemanager-node) ; then
+          log "Successfully uninstalled Node Components" >&3
+          exit 0
       else
-          log "Failed to autoremove node components" >&3
+          log "Failed to uninstall Node Components" >&3
           exit 1
       fi
-
-      # attempt purge
-      if sudo apt-get purge -qq edgemanager-node -y ;then
-          log  "Successfully purged Node Components" >&3
-      else
-          log "Failed to purge Node Components" >&3
-          exit 1
-      fi
-
-      # Successfully installed, exit
-      log "Node Components Uninstalled" >&3
-      exit 0
-  else
+   else
       # package not currently installed, so exit
-      log "edgemanager-node NOT currently installed" >&3
+      log "Node Components NOT currently installed" >&3
       exit 0
-  fi
+   fi
 }
 
 # Uninstall the CLI components
 uninstall_cli()
 {
-  # check if edgemanager-cli is currently installed
-  if dpkg -s edgemanager-cli; then
-
-      # attempt autoremove
-      if sudo apt autoremove -qq edgemanager-cli -y ;then
-          log "Successfully autoremoved CLI" >&3
+   show_progress 1
+   # check if edgemanager-cli is currently installed
+      if dpkg -s edgemanager-cli; then
+          sudo apt-get -qq purge edgemanager-cli -y
+          show_progress 45
+          if (dpkg --list edgemanager-cli) ; then
+              log "Failed to uninstall CLI" >&3
+              exit 1
+          else
+              log "CLI Successfully Uninstalled" >&3
+              exit 0
+          fi
       else
-          log "Failed to autoremove CLI" >&3
-          exit 1
+          show_progress 45
+          # package not currently installed, so exit
+          log "CLI NOT currently installed" >&3
+          exit 0
       fi
-
-      # attempt purge
-      if sudo apt-get -qq purge edgemanager-cli -y ;then
-          log "Successfully purged CLI" >&3
-      else
-          log "Failed to purge CLI" >&3
-          exit 1
-      fi
-
-      # Successfully installed, exit
-      log "CLI Components Uninstalled" >&3
-      exit 0
-  else
-      # package not currently installed, so exit
-      log "edgemanager-cli NOT currently installed" >&3
-      exit 0
-  fi
 }
 
 # Displays simple usage prompt
 display_usage()
 {
-  echo "Usage: edgebuilder-install.sh [param] [options]"
-  echo "params: server, node, cli"
-  echo "options: "
-  echo "     -r, --repo-auth          : IoTech repo auth token to access packages"
-  echo "     -u, --uninstall          : Uninstall the package"
-  echo "     -f, --file               : Absolute path to local package"
-  echo "     --offline-provision      : Enable offline node provision"
+  echo "Usage: edgebuilder-install.sh [param] [options]" >&3
+  echo "params: server, node, cli" >&3
+  echo "options: " >&3
+  echo "     -r, --repo-auth          : IoTech repo auth token to access packages" >&3
+  echo "     -u, --uninstall          : Uninstall the package" >&3
+  echo "     -f, --file               : Absolute path to local package" >&3
+  echo "     --offline-provision      : Enable offline node provision" >&3
+  echo "     --install-docker         : Install docker as part of package install" >&3
 }
 
 ## Main starts here: ##
@@ -610,14 +587,16 @@ while [ "$1" != "" ]; do
             ;;
     esac
 done
+
+# If no params, display help
 if [ -z "$COMPONENT" ];then
     display_usage
     exit 1
 fi
 
 # If not run as sudo, exit
-if [ "$(id -u)" -ne 0 ]
-  then log "Insufficient permissions, please run as root/sudo" >&3
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Insufficient permissions, please run as root/sudo"
   exit 1
 fi
 
@@ -650,7 +629,6 @@ ARCH="$(uname -m)"
 # Check compatibility
 log "Checking compatibility"  >&3
 if [ "$COMPONENT" = "server" ];then
-
   if "$UNINSTALL"; then
       uninstall_server
   fi
@@ -666,20 +644,19 @@ if [ "$COMPONENT" = "server" ];then
     exit 1
   fi
 elif [ "$COMPONENT" = "node" ]; then
-
   if "$UNINSTALL"; then
-    uninstall_node
+     uninstall_node
   fi
 
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
     if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ];then
       install_node "$OS" "$ARCH"
     else
-      log "The Edge Manager node components are not supported on $OS - $ARCH"  >&3
+      log "Edge Manager node components are not supported on $OS - $ARCH"  >&3
       exit 1
     fi
   else
-    log "The Edge Manager node components are not supported on $ARCH"  >&3
+    log "Edge Manager node components are not supported on $ARCH"  >&3
     exit 1
   fi
 elif [ "$COMPONENT" = "cli" ]; then
@@ -696,11 +673,11 @@ elif [ "$COMPONENT" = "cli" ]; then
     elif [ -x "$(command -v yum)" ]; then
       install_cli_rpm "$OS" "$ARCH" "yum"
     else
-      log "The Edge Manager CLI cannot be installed as no suitable package manager has been found (apt, dnf or yum)"  >&3
+      log "Edge Manager CLI cannot be installed as no suitable package manager has been found (apt, dnf or yum)"  >&3
       exit 1
     fi
   else
-    log "The Edge Manager CLI is not supported on $ARCH"  >&3
+    log "Edge Manager CLI is not supported on $ARCH"  >&3
     exit 1
   fi
 fi
