@@ -51,16 +51,16 @@ enabled=1
 gpgcheck=0'
 
 # Checks that the kernel is compatible with Golang
-version_under_2_6_23(){
+version_under_2_6_32(){
     # shellcheck disable=SC2046
     return $(uname -r | awk -F '.' '{
       if ($1 < 2) {
         print 0;
       } else if ($1 == 2) {
-        if ($2 <= 6) {
+        if ($2 < 6) {
           print 0;
         } else if ($2 == 6) {
-          if ($3 <= 23) {
+          if ($3 < 32) {
             print 0
           } else {
             print 1
@@ -371,9 +371,9 @@ install_cli_deb()
   fi
    show_progress 2
 
-  if version_under_2_6_23; then
+  if version_under_2_6_32; then
     show_progress 40
-    log "Kernel version $(uname -r), requires 2.6.23 or above"  >&3
+    log "Kernel version $(uname -r), requires 2.6.32 or above"  >&3
     exit 1
   fi
   show_progress 5
@@ -438,8 +438,8 @@ install_cli_rpm()
     exit 0
   fi
 
-  if version_under_2_6_23; then
-    log "Kernel version $(uname -r), requires 2.6.23 or above" >&3
+  if version_under_2_6_32; then
+    log "Kernel version $(uname -r), requires 2.6.32 or above" >&3
     show_progress 40
     exit 1
   fi
