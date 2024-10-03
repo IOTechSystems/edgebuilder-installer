@@ -169,7 +169,7 @@ install_server()
 
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
-  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
+  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release jq
 
   show_progress 5
   DIST_NAME=$(get_dist_name "$DIST")
