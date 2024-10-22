@@ -30,7 +30,6 @@ OFFLINE_PROVISION=false
 REPOAUTH=""
 INSTALL_DOCKER=false
 VER="3.1.0.dev"
-FRP_VERSION="0.52.3"
 
 UBUNTU2204="Ubuntu 22.04"
 UBUNTU2004="Ubuntu 20.04"
@@ -122,16 +121,6 @@ get_dist_arch()
     echo "arm64"
   elif [ "$1" = "armv7l" ]; then
     echo "armhf"
-  fi
-}
-
-# Get the arch names for FRP archives (https://github.com/fatedier/frp/releases)
-get_frp_dist_arch()
-{
-  if [ "$1" = "armhf" ]; then
-    echo "arm"
-  else
-    echo "$1"
   fi
 }
 
@@ -263,7 +252,6 @@ install_node()
   DIST_NUM=$(get_dist_num "$DIST")
   DIST_TYPE=$(get_dist_type "$DIST")
   DIST_ARCH=$(get_dist_arch "$ARCH")
-  FRP_DIST_ARCH=$(get_frp_dist_arch "$DIST_ARCH")
 
   show_progress 10
   check_docker_and_compose
@@ -300,13 +288,6 @@ install_node()
     fi
     usermod -aG docker "$USER"
   fi
-
-  show_progress 30
-
-  # Install the FRP client on the node
-  curl -LO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
-    tar -xf frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && cd frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH" && cp frpc /usr/local/bin/
-
   show_progress 35
 
   # Reconfigure the /etc/pam.d/sshd file to apply edgebuilder user specific settings so that it can use vault OTP authentication
