@@ -44,18 +44,6 @@ COMPOSE_VERSION="v2.24.6"
 
 KEYRINGS_DIR="/etc/apt/keyrings"
 
-RPM_REPO_DATA='[IoTech]
-name=IoTech
-baseurl=https://iotech.jfrog.io/artifactory/rpm-release
-enabled=1
-gpgcheck=0'
-
-RPM_DEV_REPO_DATA="[IoTech]
-name=IoTech
-baseurl=https://$REPOAUTH@iotech.jfrog.io/artifactory/rpm-dev
-enabled=1
-gpgcheck=0"
-
 # Checks that the kernel is compatible with Golang
 version_under_2_6_23(){
     # shellcheck disable=SC2046
@@ -466,6 +454,18 @@ install_cli_rpm()
   DIST=$1
   ARCH=$2
   PKG_MNGR=$3
+
+  RPM_REPO_DATA='[IoTech]
+  name=IoTech
+  baseurl=https://iotech.jfrog.io/artifactory/rpm-release
+  enabled=1
+  gpgcheck=0'
+
+  RPM_DEV_REPO_DATA="[IoTech]
+  name=IoTech
+  baseurl=https://$REPOAUTH@iotech.jfrog.io/artifactory/rpm-dev
+  enabled=1
+  gpgcheck=0"
 
   log  "Starting CLI ($VER) install on $DIST - $ARCH" >&3
   show_progress 1
