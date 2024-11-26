@@ -52,7 +52,7 @@ gpgcheck=0'
 
 RPM_DEV_REPO_DATA='[IoTech]
 name=IoTech
-baseurl=https://$REPOAUTH@iotech.jfrog.io/artifactory/rpm-release
+baseurl=https://$REPOAUTH@iotech.jfrog.io/artifactory/rpm-dev
 enabled=1
 gpgcheck=0'
 
