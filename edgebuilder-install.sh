@@ -173,7 +173,7 @@ hold_package_updates_rpm()
 {
   PACKAGE=$1
   PKG_MNGR=$2
-  switch "$PKG_MNGR" in
+  case "$PKG_MNGR" in
     dnf)
       dnf install 'dnf-command(versionlock)'
       dnf versionlock add "$PACKAGE-*"
