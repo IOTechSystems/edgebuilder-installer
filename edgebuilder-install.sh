@@ -175,7 +175,7 @@ hold_package_updates_rpm()
   PKG_MNGR=$2
   case "$PKG_MNGR" in
     dnf)
-      dnf install 'dnf-command(versionlock)'
+      dnf install 'dnf-command(versionlock)' -y
       dnf versionlock add "$PACKAGE-*"
       ;;
     yum)
