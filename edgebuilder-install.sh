@@ -50,6 +50,12 @@ baseurl=https://iotech.jfrog.io/artifactory/rpm-release
 enabled=1
 gpgcheck=0'
 
+RPM_DEV_REPO_DATA='[IoTech]
+name=IoTech
+baseurl=https://$REPOAUTH@iotech.jfrog.io/artifactory/rpm-release
+enabled=1
+gpgcheck=0'
+
 # Checks that the kernel is compatible with Golang
 version_under_2_6_23(){
     # shellcheck disable=SC2046
@@ -476,8 +482,14 @@ install_cli_rpm()
     exit 1
   fi
 
-  if ! grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/eb-iotech-cli.repo ;then
-    echo "$RPM_REPO_DATA" | sudo tee -a /etc/yum.repos.d/eb-iotech-cli.repo
+  if [ "$REPOAUTH" != "" ]; then
+    if ! grep -q "$RPM_DEV_REPO_DATA" /etc/yum.repos.d/eb-iotech-cli.repo ;then
+      echo "$RPM_DEV_REPO_DATA" | sudo tee -a /etc/yum.repos.d/eb-iotech-cli.repo
+    fi
+  else
+    if ! grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/eb-iotech-cli.repo ;then
+      echo "$RPM_REPO_DATA" | sudo tee -a /etc/yum.repos.d/eb-iotech-cli.repo
+    fi
   fi
   show_progress 15
 
