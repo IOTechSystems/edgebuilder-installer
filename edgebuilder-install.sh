@@ -456,16 +456,16 @@ install_cli_rpm()
   PKG_MNGR=$3
 
   RPM_REPO_DATA='[IoTech]
-  name=IoTech
-  baseurl=https://iotech.jfrog.io/artifactory/rpm-release
-  enabled=1
-  gpgcheck=0'
+name=IoTech
+baseurl=https://iotech.jfrog.io/artifactory/rpm-release
+enabled=1
+gpgcheck=0'
 
   RPM_DEV_REPO_DATA="[IoTech]
-  name=IoTech
-  baseurl=https://$REPOAUTH@iotech.jfrog.io/artifactory/rpm-dev
-  enabled=1
-  gpgcheck=0"
+name=IoTech
+baseurl=https://$REPOAUTH@iotech.jfrog.io/artifactory/rpm-dev
+enabled=1
+gpgcheck=0"
 
   log  "Starting CLI ($VER) install on $DIST - $ARCH" >&3
   show_progress 1
