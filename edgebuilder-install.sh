@@ -50,11 +50,11 @@ baseurl=https://iotech.jfrog.io/artifactory/rpm-release
 enabled=1
 gpgcheck=0'
 
-RPM_DEV_REPO_DATA='[IoTech]
+RPM_DEV_REPO_DATA="[IoTech]
 name=IoTech
 baseurl=https://$REPOAUTH@iotech.jfrog.io/artifactory/rpm-dev
 enabled=1
-gpgcheck=0'
+gpgcheck=0"
 
 # Checks that the kernel is compatible with Golang
 version_under_2_6_23(){
