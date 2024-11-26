@@ -161,6 +161,29 @@ check_docker_and_compose()
   fi
 }
 
+# Holds package updates, prevents upgrades via apt-get update/upgrade
+hold_package_updates_deb() 
+{
+  PACKAGE=$1
+  apt-mark hold "$PACKAGE"
+}
+
+# Holds package updates, prevents upgrades via dnf/yum
+hold_package_updates_rpm()
+{
+  PACKAGE=$1
+  PKG_MNGR=$2
+  switch "$PKG_MNGR" in
+    dnf)
+      dnf install 'dnf-command(versionlock)'
+      dnf versionlock add "$PACKAGE-*"
+      ;;
+    yum)
+      yum versionlock add "$PACKAGE-*"
+      ;;
+  esac
+}
+
 # Installs the server components
 # Args: Distribution
 install_server()
@@ -230,6 +253,9 @@ install_server()
   else
     log "Server validation succeeded" >&3
   fi
+
+  # Hold package updates
+  hold_package_updates_deb "edgemanager-server"
 }
 
 # Installs the node components
@@ -346,6 +372,9 @@ install_node()
   else
     log "Node validation succeeded" >&3
   fi
+
+  # Hold package updates
+  hold_package_updates_deb "edgemanager-node"
 }
 
 # Installs the CLI using apt
@@ -419,6 +448,9 @@ install_cli_deb()
   else
     log "CLI validation succeeded"  >&3
   fi
+
+  # Hold package updates
+  hold_package_updates_deb "edgemanager-cli"
 }
 
 # Installs the CLI using dnf
@@ -460,6 +492,9 @@ install_cli_rpm()
   else
     log "CLI validation succeeded" >&3
   fi
+
+  # Hold package updates
+  hold_package_updates_rpm "edgemanager-cli" "$PKG_MNGR"
 }
 
 # Uninstall the Server components
