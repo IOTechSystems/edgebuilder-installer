@@ -29,6 +29,7 @@ FILE=""
 OFFLINE_PROVISION=false
 REPOAUTH=""
 INSTALL_DOCKER=false
+NO_FRP=false
 VER=VER="3.0.5".dev
 FRP_VERSION="0.52.3"
 
@@ -303,30 +304,33 @@ install_node()
 
   show_progress 30
 
-  # Install the FRP client on the node
-  curl -LO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
-    tar -xf frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && cd frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH" && cp frpc /usr/local/bin/
+  # Install FRP if requested
+  if [ "$INSTALL_FRP" = "true" ]; then
+   # Install the FRP client on the node
+     curl -LO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
+       tar -xf frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && cd frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH" && cp frpc /usr/local/bin/
 
-  show_progress 35
+     show_progress 35
 
-  # Reconfigure the /etc/pam.d/sshd file to apply edgebuilder user specific settings so that it can use vault OTP authentication
-  # Note: All other users should use the default or their own custom pam configurations
-  commonAuth="#@include common-auth" # We should disable common-auth for vault authentication
-  pamSSHConfigFile="/etc/pam.d/sshd"
-  if [ -f /etc/pam.d/sshd ] && [ "$(grep '@include common-auth' ${pamSSHConfigFile})" != "" ]
-  then
-    commonAuth=$(grep  '@include common-auth' ${pamSSHConfigFile})
+    # Reconfigure the /etc/pam.d/sshd file to apply edgemanager user specific settings so that it can use vault OTP authentication
+    # Note: All other users should use the default or their own custom pam configurations
+    commonAuth="#@include common-auth" # We should disable common-auth for vault authentication
+    pamSSHConfigFile="/etc/pam.d/sshd"
+    if [ -f /etc/pam.d/sshd ] && [ "$(grep '@include common-auth' ${pamSSHConfigFile})" != "" ]
+    then
+      commonAuth=$(grep  '@include common-auth' ${pamSSHConfigFile})
+    fi
+    sed -i 's/^.*@include common-auth//' ${pamSSHConfigFile} # Remove the common-auth line and replace with the below settings
+    {
+      # IMP: DO NOT ADD/REMOVE any of the following lines
+      echo "auth [success=2 default=ignore] pam_succeed_if.so user = edgebuilder"
+      echo "${commonAuth}"
+      echo "auth [success=ignore default=1] pam_succeed_if.so user = edgebuilder"
+      echo "auth requisite pam_exec.so quiet expose_authtok log=/var/log/vault-ssh.log /usr/local/bin/vault-ssh-helper -config=/etc/vault-ssh-helper.d/config.hcl"
+      echo "auth optional pam_unix.so use_first_pass nodelay"
+    } >> ${pamSSHConfigFile}
+
   fi
-  sed -i 's/^.*@include common-auth//' ${pamSSHConfigFile} # Remove the common-auth line and replace with the below settings
-  {
-    # IMP: DO NOT ADD/REMOVE any of the following lines
-    echo "auth [success=2 default=ignore] pam_succeed_if.so user = edgebuilder"
-    echo "${commonAuth}"
-    echo "auth [success=ignore default=1] pam_succeed_if.so user = edgebuilder"
-    echo "auth requisite pam_exec.so quiet expose_authtok log=/var/log/vault-ssh.log /usr/local/bin/vault-ssh-helper -config=/etc/vault-ssh-helper.d/config.hcl"
-    echo "auth optional pam_unix.so use_first_pass nodelay"
-  } >> ${pamSSHConfigFile}
-
   # Load alpine docker image
   docker load -i /opt/edgebuilder/node/alpine_3_19_1.tar
 
@@ -547,6 +551,7 @@ display_usage()
   echo "     -f, --file               : Absolute path to local package" >&3
   echo "     --offline-provision      : Enable offline node provision" >&3
   echo "     --install-docker         : Install docker as part of package install" >&3
+  echo "     --no-tunnels             : Do not install FRP for tunnels as part of package install" >&3
 }
 
 ## Main starts here: ##
@@ -577,6 +582,10 @@ while [ "$1" != "" ]; do
             ;;
         --install-docker)
             INSTALL_DOCKER=true
+            shift
+            ;;
+        --no-tunnels)
+            NO_FRP=true
             shift
             ;;
         *)
@@ -625,6 +634,9 @@ fi
 
 # Detect Arch
 ARCH="$(uname -m)"
+
+# Set the FRP flag to enable/disable tunnels
+export NO_TUNNELS="$NO_FRP"
 
 # Check compatibility
 log "Checking compatibility"  >&3
