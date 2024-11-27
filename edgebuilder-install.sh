@@ -305,7 +305,8 @@ install_node()
   show_progress 30
 
   # Install FRP if requested
-  if [ "$INSTALL_FRP" = "true" ]; then
+  if [ "$NO_FRP" = "false" ]; then
+    log "Installing FRP & configuring" >&3
    # Install the FRP client on the node
      curl -LO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
        tar -xf frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && cd frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH" && cp frpc /usr/local/bin/
@@ -330,6 +331,8 @@ install_node()
       echo "auth optional pam_unix.so use_first_pass nodelay"
     } >> ${pamSSHConfigFile}
 
+  else
+     log "No FRP install as the no-frp flag is set" >&3
   fi
   # Load alpine docker image
   docker load -i /opt/edgebuilder/node/alpine_3_19_1.tar
