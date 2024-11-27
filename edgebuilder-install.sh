@@ -551,7 +551,7 @@ display_usage()
   echo "     -f, --file               : Absolute path to local package" >&3
   echo "     --offline-provision      : Enable offline node provision" >&3
   echo "     --install-docker         : Install docker as part of package install" >&3
-  echo "     --no-tunnels             : Do not install FRP for tunnels as part of package install" >&3
+  echo "     --no-frp                 : Do not install FRP for tunnels as part of package install" >&3
 }
 
 ## Main starts here: ##
@@ -584,7 +584,7 @@ while [ "$1" != "" ]; do
             INSTALL_DOCKER=true
             shift
             ;;
-        --no-tunnels)
+        --no-frp)
             NO_FRP=true
             shift
             ;;
@@ -635,8 +635,8 @@ fi
 # Detect Arch
 ARCH="$(uname -m)"
 
-# Set the FRP flag to enable/disable tunnels
-export NO_TUNNELS="$NO_FRP"
+# Set the FRP flag to enable/disable
+export NO_FRP
 
 # Check compatibility
 log "Checking compatibility"  >&3
