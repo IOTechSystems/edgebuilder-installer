@@ -43,12 +43,6 @@ COMPOSE_VERSION="v2.24.6"
 
 KEYRINGS_DIR="/etc/apt/keyrings"
 
-RPM_REPO_DATA='[IoTech]
-name=IoTech
-baseurl=https://iotech.jfrog.io/artifactory/rpm-release
-enabled=1
-gpgcheck=0'
-
 # Checks that the kernel is compatible with Golang
 version_under_2_6_32(){
     # shellcheck disable=SC2046
@@ -150,6 +144,29 @@ check_docker_and_compose()
   fi
 }
 
+# Holds package updates, prevents upgrades via apt-get update/upgrade
+hold_package_updates_deb() 
+{
+  PACKAGE=$1
+  apt-mark hold "$PACKAGE"
+}
+
+# Holds package updates, prevents upgrades via dnf/yum
+hold_package_updates_rpm()
+{
+  PACKAGE=$1
+  PKG_MNGR=$2
+  case "$PKG_MNGR" in
+    dnf)
+      dnf install 'dnf-command(versionlock)' -y
+      dnf versionlock add "$PACKAGE-*"
+      ;;
+    yum)
+      yum versionlock add "$PACKAGE-*"
+      ;;
+  esac
+}
+
 # Installs the server components
 # Args: Distribution
 install_server()
@@ -219,6 +236,9 @@ install_server()
   else
     log "Server validation succeeded" >&3
   fi
+
+  # Hold package updates
+  hold_package_updates_deb "edgemanager-server"
 }
 
 # Installs the node components
@@ -327,6 +347,9 @@ install_node()
   else
     log "Node validation succeeded" >&3
   fi
+
+  # Hold package updates
+  hold_package_updates_deb "edgemanager-node"
 }
 
 # Installs the CLI using apt
@@ -400,6 +423,9 @@ install_cli_deb()
   else
     log "CLI validation succeeded"  >&3
   fi
+
+  # Hold package updates
+  hold_package_updates_deb "edgemanager-cli"
 }
 
 # Installs the CLI using dnf
@@ -409,6 +435,18 @@ install_cli_rpm()
   DIST=$1
   ARCH=$2
   PKG_MNGR=$3
+
+  RPM_REPO_DATA='[IoTech]
+name=IoTech
+baseurl=https://iotech.jfrog.io/artifactory/rpm-release
+enabled=1
+gpgcheck=0'
+
+  RPM_DEV_REPO_DATA="[IoTech]
+name=IoTech
+baseurl=https://$REPOAUTH@iotech.jfrog.io/artifactory/rpm-dev
+enabled=1
+gpgcheck=0"
 
   log  "Starting CLI ($VER) install on $DIST - $ARCH" >&3
   show_progress 1
@@ -425,8 +463,14 @@ install_cli_rpm()
     exit 1
   fi
 
-  if ! grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/eb-iotech-cli.repo ;then
-    echo "$RPM_REPO_DATA" | sudo tee -a /etc/yum.repos.d/eb-iotech-cli.repo
+  if [ "$REPOAUTH" != "" ]; then
+    if ! grep -q "$RPM_DEV_REPO_DATA" /etc/yum.repos.d/eb-iotech-cli.repo ;then
+      echo "$RPM_DEV_REPO_DATA" | sudo tee -a /etc/yum.repos.d/eb-iotech-cli.repo
+    fi
+  else
+    if ! grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/eb-iotech-cli.repo ;then
+      echo "$RPM_REPO_DATA" | sudo tee -a /etc/yum.repos.d/eb-iotech-cli.repo
+    fi
   fi
   show_progress 15
 
@@ -441,6 +485,9 @@ install_cli_rpm()
   else
     log "CLI validation succeeded" >&3
   fi
+
+  # Hold package updates
+  hold_package_updates_rpm "edgemanager-cli" "$PKG_MNGR"
 }
 
 # Uninstall the Server components
