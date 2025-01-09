@@ -311,7 +311,7 @@ install_node()
   fi
   show_progress 30
 
-# Install FRP if requested
+# Configure SSH for FRP if requested
   if [ "$NO_FRP" = "false" ]; then
     log "Configuring SSH to enable Tunneling" >&3
     # Reconfigure the /etc/pam.d/sshd file to apply edgemanager user specific settings so that it can use vault OTP authentication
@@ -333,7 +333,7 @@ install_node()
     } >> ${pamSSHConfigFile}
 
   else
-     log "No Tunneling functionality as the no-frp flag is set" >&3
+     log "No Tunneling functionality as the no-frp flag is set to true" >&3
   fi
   # Load alpine docker image
   docker load -i /opt/edgebuilder/node/alpine_3_19_1.tar
