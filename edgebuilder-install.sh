@@ -309,32 +309,7 @@ install_node()
     fi
     usermod -aG docker "$USER"
   fi
-  show_progress 30
 
-# Configure SSH for FRP if requested
-  if [ "$NO_FRP" = "false" ]; then
-    log "Configuring SSH to enable Tunneling" >&3
-    # Reconfigure the /etc/pam.d/sshd file to apply edgemanager user specific settings so that it can use vault OTP authentication
-    # Note: All other users should use the default or their own custom pam configurations
-    commonAuth="#@include common-auth" # We should disable common-auth for vault authentication
-    pamSSHConfigFile="/etc/pam.d/sshd"
-    if [ -f /etc/pam.d/sshd ] && [ "$(grep '@include common-auth' ${pamSSHConfigFile})" != "" ]
-    then
-      commonAuth=$(grep  '@include common-auth' ${pamSSHConfigFile})
-    fi
-    sed -i 's/^.*@include common-auth//' ${pamSSHConfigFile} # Remove the common-auth line and replace with the below settings
-    {
-      # IMP: DO NOT ADD/REMOVE any of the following lines
-      echo "auth [success=2 default=ignore] pam_succeed_if.so user = edgebuilder"
-      echo "${commonAuth}"
-      echo "auth [success=ignore default=1] pam_succeed_if.so user = edgebuilder"
-      echo "auth requisite pam_exec.so quiet expose_authtok log=/var/log/vault-ssh.log /usr/local/bin/vault-ssh-helper -config=/etc/vault-ssh-helper.d/config.hcl"
-      echo "auth optional pam_unix.so use_first_pass nodelay"
-    } >> ${pamSSHConfigFile}
-
-  else
-     log "No Tunneling functionality as the no-frp flag is set to true" >&3
-  fi
   # Load alpine docker image
   docker load -i /opt/edgebuilder/node/alpine_3_19_1.tar
 
