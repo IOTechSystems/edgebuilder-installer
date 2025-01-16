@@ -29,6 +29,7 @@ FILE=""
 OFFLINE_PROVISION=false
 REPOAUTH=""
 INSTALL_DOCKER=false
+NO_FRP=false
 VER="3.1.0.dev"
 
 UBUNTU2204="Ubuntu 22.04"
@@ -308,25 +309,6 @@ install_node()
     fi
     usermod -aG docker "$USER"
   fi
-  show_progress 35
-
-  # Reconfigure the /etc/pam.d/sshd file to apply edgebuilder user specific settings so that it can use vault OTP authentication
-  # Note: All other users should use the default or their own custom pam configurations
-  commonAuth="#@include common-auth" # We should disable common-auth for vault authentication
-  pamSSHConfigFile="/etc/pam.d/sshd"
-  if [ -f /etc/pam.d/sshd ] && [ "$(grep '@include common-auth' ${pamSSHConfigFile})" != "" ]
-  then
-    commonAuth=$(grep  '@include common-auth' ${pamSSHConfigFile})
-  fi
-  sed -i 's/^.*@include common-auth//' ${pamSSHConfigFile} # Remove the common-auth line and replace with the below settings
-  {
-    # IMP: DO NOT ADD/REMOVE any of the following lines
-    echo "auth [success=2 default=ignore] pam_succeed_if.so user = edgebuilder"
-    echo "${commonAuth}"
-    echo "auth [success=ignore default=1] pam_succeed_if.so user = edgebuilder"
-    echo "auth requisite pam_exec.so quiet expose_authtok log=/var/log/vault-ssh.log /usr/local/bin/vault-ssh-helper -config=/etc/vault-ssh-helper.d/config.hcl"
-    echo "auth optional pam_unix.so use_first_pass nodelay"
-  } >> ${pamSSHConfigFile}
 
   # Load alpine docker image
   docker load -i /opt/edgebuilder/node/alpine_3_19_1.tar
@@ -575,6 +557,7 @@ display_usage()
   echo "     -f, --file               : Absolute path to local package" >&3
   echo "     --offline-provision      : Enable offline node provision" >&3
   echo "     --install-docker         : Install docker as part of package install" >&3
+  echo "     --no-frp                 : Do not enable FRP tunnels as part of package install" >&3
 }
 
 ## Main starts here: ##
@@ -605,6 +588,10 @@ while [ "$1" != "" ]; do
             ;;
         --install-docker)
             INSTALL_DOCKER=true
+            shift
+            ;;
+        --no-frp)
+            NO_FRP=true
             shift
             ;;
         *)
@@ -653,6 +640,9 @@ fi
 
 # Detect Arch
 ARCH="$(uname -m)"
+
+# Set the FRP flag to enable/disable tunneling on the node (em-node script will lookup this env variable)
+export NO_FRP
 
 # Check compatibility
 log "Checking compatibility"  >&3
