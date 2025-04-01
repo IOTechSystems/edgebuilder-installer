@@ -321,8 +321,6 @@ install_node()
 
   show_progress 45
 
-  # enable builderd service
-  systemctl enable builderd.service
   # enable em-node service for offline node provision
   if [ "$OFFLINE_PROVISION" ]; then
     systemctl enable --now em-node.service
