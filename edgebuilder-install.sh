@@ -32,6 +32,7 @@ INSTALL_DOCKER=false
 NO_FRP=false
 VER="3.1.0.dev"
 
+UBUNTU2404="Ubuntu 24.04"
 UBUNTU2204="Ubuntu 22.04"
 UBUNTU2004="Ubuntu 20.04"
 DEBIAN10="Debian GNU/Linux 10"
@@ -72,7 +73,9 @@ version_under_2_6_32(){
 # Gets the distribution 'name' bionic, focal etc
 get_dist_name()
 {
-  if [ "$1" = "$UBUNTU2204" ]; then
+  if [ "$1" = "$UBUNTU2404" ]; then
+    echo "noble"
+  elif [ "$1" = "$UBUNTU2204" ]; then
     echo "jammy"
   elif [ "$1" = "$UBUNTU2004" ]; then
     echo "focal"
@@ -88,7 +91,9 @@ get_dist_name()
 # Gets the distribution number 20.04, 22.04 etc
 get_dist_num()
 {
-  if [ "$1" = "$UBUNTU2204" ]; then
+  if [ "$1" = "$UBUNTU2404" ]; then
+    echo "24.04"
+  elif [ "$1" = "$UBUNTU2204" ]; then
     echo "22.04"
   elif [ "$1" = "$UBUNTU2004" ]; then
     echo "20.04"
@@ -104,12 +109,11 @@ get_dist_num()
 # Gets the basic distribution type ubuntu, debian etc
 get_dist_type()
 {
-  if [ "$1" = "$UBUNTU2204" ] || [ "$1" = "$UBUNTU2004" ]; then
+  if [ "$1" = "$UBUNTU2404" ] || [ "$1" = "$UBUNTU2204" ] || [ "$1" = "$UBUNTU2004" ]; then
     echo "ubuntu"
   elif  [ "$1" = "$DEBIAN10" ] || [ "$1" = "$DEBIAN11" ] || [ "$1" = "$DEBIAN12" ]; then
     echo "debian"
   fi
-
 }
 
 # Get the dist mapping
@@ -664,7 +668,7 @@ if [ "$COMPONENT" = "server" ];then
   fi
 
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ];then
-    if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN12" ];then
+    if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2404" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN12" ];then
       install_server "$OS"
     else
       log "The Edge Manager server components are not supported on $OS - $ARCH"  >&3
@@ -679,7 +683,7 @@ elif [ "$COMPONENT" = "node" ]; then
   fi
 
   if [ "$ARCH" = "x86_64" ]||[ "$ARCH" = "aarch64" ]||[ "$ARCH" = "armv7l" ];then
-    if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN12" ];then
+    if [ "$OS" = "$UBUNTU2004" ]||[ "$OS" = "$UBUNTU2204" ]||[ "$OS" = "$UBUNTU2404" ]||[ "$OS" = "$DEBIAN10" ]||[ "$OS" = "$DEBIAN11" ]||[ "$OS" = "$DEBIAN12" ];then
       install_node "$OS" "$ARCH"
     else
       log "Edge Manager node components are not supported on $OS - $ARCH"  >&3
