@@ -126,11 +126,11 @@ check_docker_and_compose()
     sudo sh ./get-docker.sh
   fi
 
-  # Check if the docker is installed and running
-  if [ "$(systemctl is-enabled docker.service)" != "enabled" ]; then
-    log "Docker is not available, please ensure you have docker version "$DOCKER_VERSION" (or later) installed and running"  >&3
-    exit 1
-  fi
+#  # Check if the docker is installed and running
+#  if [ "$(systemctl is-enabled docker.service)" != "enabled" ]; then
+#    log "Docker is not available, please ensure you have docker version "$DOCKER_VERSION" (or later) installed and running"  >&3
+#    exit 1
+#  fi
 
   # Check docker/compose version
   current_docker_version=$(docker version | sed -n '2p' | awk '{print $2}')
