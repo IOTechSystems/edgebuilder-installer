@@ -30,7 +30,6 @@ OFFLINE_PROVISION=false
 REPOAUTH=""
 INSTALL_DOCKER=false
 VER="3.1.0.dev"
-FRP_VERSION="0.52.3"
 
 UBUNTU2404="Ubuntu 24.04"
 UBUNTU2204="Ubuntu 22.04"
@@ -44,12 +43,6 @@ DOCKER_VERSION="25.0.3"
 COMPOSE_VERSION="v2.24.6"
 
 KEYRINGS_DIR="/etc/apt/keyrings"
-
-RPM_REPO_DATA='[IoTech]
-name=IoTech
-baseurl=https://iotech.jfrog.io/artifactory/rpm-release
-enabled=1
-gpgcheck=0'
 
 # Checks that the kernel is compatible with Golang
 version_under_2_6_32(){
@@ -130,16 +123,6 @@ get_dist_arch()
   fi
 }
 
-# Get the arch names for FRP archives (https://github.com/fatedier/frp/releases)
-get_frp_dist_arch()
-{
-  if [ "$1" = "armhf" ]; then
-    echo "arm"
-  else
-    echo "$1"
-  fi
-}
-
 check_docker_and_compose()
 {
   # Install docker if requested
@@ -166,6 +149,35 @@ check_docker_and_compose()
   fi
 }
 
+# Holds package updates, prevents upgrades via apt-get update/upgrade
+hold_package_updates_deb() 
+{
+  PACKAGE=$1
+  apt-mark hold "$PACKAGE"
+}
+
+unhold_package_updates_deb()
+{
+  PACKAGE=$1
+  apt-mark unhold "$PACKAGE"
+}
+
+# Holds package updates, prevents upgrades via dnf/yum
+hold_package_updates_rpm()
+{
+  PACKAGE=$1
+  PKG_MNGR=$2
+  case "$PKG_MNGR" in
+    dnf)
+      dnf install 'dnf-command(versionlock)' -y
+      dnf versionlock add "$PACKAGE-*"
+      ;;
+    yum)
+      yum versionlock add "$PACKAGE-*"
+      ;;
+  esac
+}
+
 # Installs the server components
 # Args: Distribution
 install_server()
@@ -185,7 +197,7 @@ install_server()
 
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq
-  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release
+  apt-get install -y -qq wget ca-certificates curl gnupg lsb-release jq
 
   show_progress 5
   DIST_NAME=$(get_dist_name "$DIST")
@@ -235,6 +247,9 @@ install_server()
   else
     log "Server validation succeeded" >&3
   fi
+
+  # Hold package updates
+  hold_package_updates_deb "edgemanager-server"
 }
 
 # Installs the node components
@@ -268,7 +283,6 @@ install_node()
   DIST_NUM=$(get_dist_num "$DIST")
   DIST_TYPE=$(get_dist_type "$DIST")
   DIST_ARCH=$(get_dist_arch "$ARCH")
-  FRP_DIST_ARCH=$(get_frp_dist_arch "$DIST_ARCH")
 
   show_progress 10
   check_docker_and_compose
@@ -306,39 +320,11 @@ install_node()
     usermod -aG docker "$USER"
   fi
 
-  show_progress 30
-
-  # Install the FRP client on the node
-  curl -LO https://github.com/fatedier/frp/releases/download/v"$FRP_VERSION"/frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && \
-    tar -xf frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH".tar.gz && cd frp_"$FRP_VERSION"_linux_"$FRP_DIST_ARCH" && cp frpc /usr/local/bin/
-
-  show_progress 35
-
-  # Reconfigure the /etc/pam.d/sshd file to apply edgebuilder user specific settings so that it can use vault OTP authentication
-  # Note: All other users should use the default or their own custom pam configurations
-  commonAuth="#@include common-auth" # We should disable common-auth for vault authentication
-  pamSSHConfigFile="/etc/pam.d/sshd"
-  if [ -f /etc/pam.d/sshd ] && [ "$(grep '@include common-auth' ${pamSSHConfigFile})" != "" ]
-  then
-    commonAuth=$(grep  '@include common-auth' ${pamSSHConfigFile})
-  fi
-  sed -i 's/^.*@include common-auth//' ${pamSSHConfigFile} # Remove the common-auth line and replace with the below settings
-  {
-    # IMP: DO NOT ADD/REMOVE any of the following lines
-    echo "auth [success=2 default=ignore] pam_succeed_if.so user = edgebuilder"
-    echo "${commonAuth}"
-    echo "auth [success=ignore default=1] pam_succeed_if.so user = edgebuilder"
-    echo "auth requisite pam_exec.so quiet expose_authtok log=/var/log/vault-ssh.log /usr/local/bin/vault-ssh-helper -config=/etc/vault-ssh-helper.d/config.hcl"
-    echo "auth optional pam_unix.so use_first_pass nodelay"
-  } >> ${pamSSHConfigFile}
-
   # Load alpine docker image
   docker load -i /opt/edgebuilder/node/alpine_3_19_1.tar
 
   show_progress 45
 
-  # enable builderd service
-  systemctl enable builderd.service
   # enable em-node service for offline node provision
   if [ "$OFFLINE_PROVISION" ]; then
     systemctl enable --now em-node.service
@@ -351,6 +337,9 @@ install_node()
   else
     log "Node validation succeeded" >&3
   fi
+
+  # Hold package updates
+  hold_package_updates_deb "edgemanager-node"
 }
 
 # Installs the CLI using apt
@@ -424,6 +413,9 @@ install_cli_deb()
   else
     log "CLI validation succeeded"  >&3
   fi
+
+  # Hold package updates
+  hold_package_updates_deb "edgemanager-cli"
 }
 
 # Installs the CLI using dnf
@@ -433,6 +425,18 @@ install_cli_rpm()
   DIST=$1
   ARCH=$2
   PKG_MNGR=$3
+
+  RPM_REPO_DATA='[IoTech]
+name=IoTech
+baseurl=https://iotech.jfrog.io/artifactory/rpm-release
+enabled=1
+gpgcheck=0'
+
+  RPM_DEV_REPO_DATA="[IoTech]
+name=IoTech
+baseurl=https://$REPOAUTH@iotech.jfrog.io/artifactory/rpm-dev
+enabled=1
+gpgcheck=0"
 
   log  "Starting CLI ($VER) install on $DIST - $ARCH" >&3
   show_progress 1
@@ -449,8 +453,14 @@ install_cli_rpm()
     exit 1
   fi
 
-  if ! grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/eb-iotech-cli.repo ;then
-    echo "$RPM_REPO_DATA" | sudo tee -a /etc/yum.repos.d/eb-iotech-cli.repo
+  if [ "$REPOAUTH" != "" ]; then
+    if ! grep -q "$RPM_DEV_REPO_DATA" /etc/yum.repos.d/eb-iotech-cli.repo ;then
+      echo "$RPM_DEV_REPO_DATA" | sudo tee -a /etc/yum.repos.d/eb-iotech-cli.repo
+    fi
+  else
+    if ! grep -q "$RPM_REPO_DATA" /etc/yum.repos.d/eb-iotech-cli.repo ;then
+      echo "$RPM_REPO_DATA" | sudo tee -a /etc/yum.repos.d/eb-iotech-cli.repo
+    fi
   fi
   show_progress 15
 
@@ -465,6 +475,9 @@ install_cli_rpm()
   else
     log "CLI validation succeeded" >&3
   fi
+
+  # Hold package updates
+  hold_package_updates_rpm "edgemanager-cli" "$PKG_MNGR"
 }
 
 # Uninstall the Server components
@@ -478,6 +491,7 @@ uninstall_server()
     if dpkg -s edgemanager-server; then
         em-server down -v
         show_progress 45
+        unhold_package_updates_deb "edgemanager-server"
         # attempt purge
         sudo apt-get -qq purge edgemanager-server -y
         if  ! (dpkg --list edgemanager-server);then
@@ -502,6 +516,7 @@ uninstall_node()
    if dpkg -s edgemanager-node; then
       show_progress 20
       em-node down
+      unhold_package_updates_deb "edgemanager-node"
       show_progress 40
       apt-get -qq purge edgemanager-node iotech-builderd-1.1 -y
       if ! (dpkg --list edgemanager-node) ; then
@@ -524,6 +539,7 @@ uninstall_cli()
    show_progress 1
    # check if edgemanager-cli is currently installed
       if dpkg -s edgemanager-cli; then
+          unhold_package_updates_deb "edgemanager-cli"
           sudo apt-get -qq purge edgemanager-cli -y
           show_progress 45
           if (dpkg --list edgemanager-cli) ; then
@@ -552,7 +568,7 @@ display_usage()
   echo "     -f, --file               : Absolute path to local package" >&3
   echo "     --offline-provision      : Enable offline node provision" >&3
   echo "     --install-docker         : Install docker as part of package install" >&3
-}
+  }
 
 ## Main starts here: ##
 # If no options are specified, print help
