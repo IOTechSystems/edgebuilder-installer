@@ -163,6 +163,12 @@ hold_package_updates_deb()
   apt-mark hold "$PACKAGE"
 }
 
+unhold_package_updates_deb()
+{
+  PACKAGE=$1
+  apt-mark unhold "$PACKAGE"
+}
+
 # Holds package updates, prevents upgrades via dnf/yum
 hold_package_updates_rpm()
 {
@@ -527,6 +533,7 @@ uninstall_server()
     if dpkg -s edgemanager-server; then
         em-server down -v
         show_progress 45
+        unhold_package_updates_deb "edgemanager-server"
         # attempt purge
         sudo apt-get -qq purge edgemanager-server -y
         if  ! (dpkg --list edgemanager-server);then
@@ -551,6 +558,7 @@ uninstall_node()
    if dpkg -s edgemanager-node; then
       show_progress 20
       em-node down
+      unhold_package_updates_deb "edgemanager-node"
       show_progress 40
       apt-get -qq purge edgemanager-node iotech-builderd-1.1 -y
       if ! (dpkg --list edgemanager-node) ; then
@@ -573,6 +581,7 @@ uninstall_cli()
    show_progress 1
    # check if edgemanager-cli is currently installed
       if dpkg -s edgemanager-cli; then
+          unhold_package_updates_deb "edgemanager-cli"
           sudo apt-get -qq purge edgemanager-cli -y
           show_progress 45
           if (dpkg --list edgemanager-cli) ; then
